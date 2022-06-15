@@ -16,6 +16,8 @@ plotScripts/*.so
 *.*~
 .DS_Store
 
+*/.ipynb_checkpoints/
+
 AccidentalAnalysis
 Alignment.xml
 BasicResiduals
