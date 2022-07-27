@@ -124,6 +124,7 @@ int OccupancyPlots (std::string const DataFileName)
     << std::setw(3) << Event.Time()%1000 << std::endl;
     }
 
+    //if (ientry > 3000000) {
     if (ientry > 3000000) {
       std::cout << "Reached maximum number of events; exiting" << std::endl;
       break;
@@ -148,6 +149,8 @@ int OccupancyPlots (std::string const DataFileName)
       }
 
 
+
+
       for (size_t icl = 0; icl != Plane->NClusters(); ++icl) {
         PLTCluster* Cluster = Plane->Cluster(icl);
 
@@ -158,8 +161,17 @@ int OccupancyPlots (std::string const DataFileName)
           PLTHit* Hit = Cluster->Hit(ihit);
           //printf("Channel ROC Row Col ADC: %2i %1i %2i %2i %4i %12i\n", Hit->Channel(), Hit->ROC(), Hit->Row(), Hit->Column(), Hit->ADC(), Event.EventNumber());
 
+          // Ignore hits on a 2-pixel wide boaders - Nimmitha
+          //if (Hit->Row() < 2 || Hit->Row() > 77 || Hit->Column() < 2 || Hit->Column() > 49){
+          if (Hit->Row() < 2 || Hit->Row() > 77 || Hit->Column() < 2 || Hit->Column() > 49){
+            //printf("Ignoring boarder event.  ");
+            //printf("Channel ROC Row Col ADC: %2i %1i %2i %2i %4i %12i\n", Hit->Channel(), Hit->ROC(), Hit->Row(), Hit->Column(), Hit->ADC(), Event.EventNumber());
+            continue;
+          }
+
           // ID the plane and roc by 3 digit number
           int const id = 10 * Plane->Channel() + Plane->ROC();
+          //printf("id: %i\n\n", id);
 
           // If the hist doesn't exist yet we have to make it
           if (hOccupancyMap.count(id) == 0) {
@@ -243,7 +255,7 @@ int OccupancyPlots (std::string const DataFileName)
         if (NHits == 1) {
           Cluster->Hit(0)->Column();
           Cluster->Hit(0)->Row();
-//          hOccupancyClMap[id][0]->Fill(12,12);
+          //hOccupancyClMap[id][0]->Fill(12,12);
           hOccupancyClMap[id][0]->Fill(Cluster->Hit(0)->Column(), Cluster->Hit(0)->Row());
         } else if (NHits == 2) {
           for (size_t ihit = 0; ihit != NHits; ++ihit) {
@@ -311,10 +323,32 @@ int OccupancyPlots (std::string const DataFileName)
     int const Channel = it->first / 10;
     int const ROC     = it->first % 10;
     int const id      = it->first;
+
+
+    // Remove pixels with low amout of hits
+    // for (Int_t cit = 0; cit < PLTU::NCOL; cit++){
+
+    //   //if (Channel != 11) {
+    //     for (Int_t rit = 0; rit < PLTU::NROW; rit++){
+
+    //       Int_t binID = it->second->GetBin(cit, rit);
+
+    //       if ( it->second->GetBinContent(binID) < 1 || it->second->GetBinContent(binID) > 450){
+    //         it->second->SetBinContent(binID, 0);
+    //       }
+    //       //printf("%i %i -> %i : %f\n", cit, rit, it->second->GetBin(cit, rit), it->second->GetBinContent(it->second->GetBin(cit, rit)));
+
+    //       //if ( it->second->GetBinContent(it->second->GetBin(cit, rit)) == 1 ){
+    //         //printf("%i %i -> %i : %f\n", cit, rit, it->second->GetBin(cit, rit), it->second->GetBinContent(it->second->GetBin(cit, rit)));
+    //       //}
+    //     }
+    //   //}
+    // }
     
     printf("Drawing hist for Channel %2i ROC %i\n", Channel, ROC);
     
     // Grab a 1-D hist from the 2D occupancy
+    //TH1F* hOccupancy1D = PLTU::HistFrom2D(it->second, 50, 400, "", 50);
     TH1F* hOccupancy1D = PLTU::HistFrom2D(it->second, "", 50);
     
     // Draw the 2D and 1D distribution on occupancy canvas
