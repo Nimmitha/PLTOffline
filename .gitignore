@@ -81,6 +81,7 @@ PrintEventNumbers
 PrintTextEvents
 ProcessHistograms
 PulseHeights
+PulseHeights_new
 PulseHeightsBorder
 PulseHeightsSignalTrack
 PulseHeightsTrack
@@ -103,6 +104,7 @@ TestBXPattern
 TestDACs
 TestGainCal
 TestTextFileReader
+TrackCount
 TrackDiagnostics
 TrackingEfficiency
 TrackLumiZeroCounting
@@ -116,3 +118,5 @@ TrackTest
 UltraBlackFinder
 ROC_Efficiency
 Verbose
+
+count.csv
