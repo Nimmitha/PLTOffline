@@ -39,6 +39,8 @@ int TrackCount(std::string const DataFileName, std::string const GainCalFileName
   std::ofstream myfile;
   myfile.open("count.csv");
 
+  int hist[16] = {0};
+
   // Loop over all events in file
   for (int ientry = 0; Event.GetNextEvent() >= 0; ++ientry)
   {
@@ -50,17 +52,10 @@ int TrackCount(std::string const DataFileName, std::string const GainCalFileName
     // Loop over all planes with hits in event
     for (size_t it = 0; it != Event.NTelescopes(); ++it)
     {
-
       // THIS telescope is
       PLTTelescope *Telescope = Event.Telescope(it);
 
       myfile << Event.ReadableTime() << "," << Telescope->Channel() << "," << Telescope->NTracks() << "\n";
-
-      // if (Telescope->NClusters() > 3) continue;
-      // std::cout << Telescope->Channel() << std::endl;
-      // std::cout << Event.ReadableTime() << std::endl;
-      // printf("Time: %s \n", Event.ReadableTime());
-      //printf("Number of tracks: %zu\n", Telescope->NTracks());
     }
   }
 
