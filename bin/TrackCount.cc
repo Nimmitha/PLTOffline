@@ -36,30 +36,66 @@ int TrackCount(std::string const DataFileName, std::string const GainCalFileName
   PLTAlignment Alignment;
   Alignment.ReadAlignmentFile(AlignmentFileName);
 
-  std::ofstream myfile;
-  myfile.open("count.csv");
+  std::string dateToken = DataFileName.substr(28, 8);
+  std::string fileName = "/eos/home-n/nkarunar/data/slink_data/outputs/" + dateToken + "_TrackCount.csv"; 
 
-  int hist[16] = {0};
+  std::cout << "\n Output file: " << fileName << std::endl;
+
+  std::ofstream myfile;
+  myfile.open(fileName);
+
+  std::map<int, int> TrkCount;
+  bool TFlag;
+  const Int_t nValid = 16;
+  const Int_t validChannels[nValid] = {1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20, 22, 23};
+
+  myfile << "EvenTime";
+
+  for (int ch = 0; ch < nValid; ch++)
+  {
+    myfile << "," << validChannels[ch];
+    TrkCount[validChannels[ch]] = 0;
+  }
+  myfile << "\n";
 
   // Loop over all events in file
   for (int ientry = 0; Event.GetNextEvent() >= 0; ++ientry)
   {
+    //if (ientry >= 10)
+      //break;
+
     if (ientry % 10000 == 0)
     {
       std::cout << "Processing entry: " << ientry << std::endl;
     }
+    TFlag = false;
 
     // Loop over all planes with hits in event
     for (size_t it = 0; it != Event.NTelescopes(); ++it)
     {
+      TFlag = true;
       // THIS telescope is
       PLTTelescope *Telescope = Event.Telescope(it);
 
-      myfile << Event.ReadableTime() << "," << Telescope->Channel() << "," << Telescope->NTracks() << "\n";
+      TrkCount[Telescope->Channel()] = Telescope->NTracks();
+    }
+
+    if (TFlag)
+    {
+      myfile << Event.ReadableTime();
+
+      for (int ch = 0; ch < nValid; ch++)
+      {
+        myfile << "," << TrkCount[validChannels[ch]];
+      }
+      myfile << "\n";
+
+      TrkCount.clear();
     }
   }
 
   myfile.close();
+  std::cout << "\n Output saved to: " << fileName << std::endl;
   return 0;
 }
 
