@@ -26,6 +26,69 @@
 // FUNCTION DEFINITIONS HERE
 
 // CONSTANTS HERE
+int getFOChannel(int FEDChannel)
+{
+  int FOChannel = -1;
+
+  switch (FEDChannel)
+  {
+  case 1:
+    FOChannel = 0;
+    break;
+      case 2:
+    FOChannel = 1;
+    break;
+      case 4:
+    FOChannel = 2;
+    break;
+      case 5:
+    FOChannel = 3;
+    break;
+      case 7:
+    FOChannel = 4;
+    break;
+      case 8:
+    FOChannel = 5;
+    break;
+      case 10:
+    FOChannel = 6;
+    break;
+      case 11:
+    FOChannel = 7;
+    break;
+      case 13:
+    FOChannel = 8;
+    break;
+      case 14:
+    FOChannel = 9;
+    break;
+      case 16:
+    FOChannel = 10;
+    break;
+      case 17:
+    FOChannel = 11;
+    break;
+      case 19:
+    FOChannel = 12;
+    break;
+      case 20:
+    FOChannel = 13;
+    break;
+      case 22:
+    FOChannel = 14;
+    break;
+      case 23:
+    FOChannel = 15;
+    break;
+  
+  default:
+    break;
+  }
+  return FOChannel;
+  printf("%i -> %i\n", FEDChannel, FOChannel);
+}
+
+
 
 TH1F *FidHistFrom2D(TH2F *hIN, TString const NewName, int const NBins, PLTPlane::FiducialRegion FidRegion)
 {
@@ -166,7 +229,7 @@ int OccupancyPlots(std::string const DataFileName)
           //printf("Channel ROC Row Col ADC: %2i %1i %2i %2i %4i %12i\n", Hit->Channel(), Hit->ROC(), Hit->Row(), Hit->Column(), Hit->ADC(), Event.EventNumber());
 
           // Ignore hits on a 2-pixel wide boaders - Nimmitha
-          if (Hit->Row() < 2 || Hit->Row() > 77 || Hit->Column() < 2 || Hit->Column() > 49)
+          if (Hit->Row() < 3 || Hit->Row() > 76 || Hit->Column() < 3 || Hit->Column() > 48)
           {
             printf("Ignoring edge event.  ");
             printf("Channel ROC Row Col ADC: %2i %1i %2i %2i %4i %12i\n", Hit->Channel(), Hit->ROC(), Hit->Row(), Hit->Column(), Hit->ADC(), Event.EventNumber());
