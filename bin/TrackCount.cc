@@ -2,7 +2,7 @@
 //
 // Nimmitha Karunarathna
 //
-// Created on: Fri May  8 18:26:18 UTC 2015
+// Created on: 2022-08-10
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -36,7 +36,7 @@ int TrackCount(std::string const DataFileName, std::string const GainCalFileName
   PLTAlignment Alignment;
   Alignment.ReadAlignmentFile(AlignmentFileName);
 
-  std::string dateToken = DataFileName.substr(28, 8);
+  std::string dateToken = DataFileName.substr(28, 15);
   std::string fileName = "/eos/home-n/nkarunar/data/slink_data/outputs/" + dateToken + "_TrackCount.csv"; 
 
   std::cout << "\n Output file: " << fileName << std::endl;
