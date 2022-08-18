@@ -35,60 +35,58 @@ int getFOChannel(int FEDChannel)
   case 1:
     FOChannel = 0;
     break;
-      case 2:
+  case 2:
     FOChannel = 1;
     break;
-      case 4:
+  case 4:
     FOChannel = 2;
     break;
-      case 5:
+  case 5:
     FOChannel = 3;
     break;
-      case 7:
+  case 7:
     FOChannel = 4;
     break;
-      case 8:
+  case 8:
     FOChannel = 5;
     break;
-      case 10:
+  case 10:
     FOChannel = 6;
     break;
-      case 11:
+  case 11:
     FOChannel = 7;
     break;
-      case 13:
+  case 13:
     FOChannel = 8;
     break;
-      case 14:
+  case 14:
     FOChannel = 9;
     break;
-      case 16:
+  case 16:
     FOChannel = 10;
     break;
-      case 17:
+  case 17:
     FOChannel = 11;
     break;
-      case 19:
+  case 19:
     FOChannel = 12;
     break;
-      case 20:
+  case 20:
     FOChannel = 13;
     break;
-      case 22:
+  case 22:
     FOChannel = 14;
     break;
-      case 23:
+  case 23:
     FOChannel = 15;
     break;
-  
+
   default:
     break;
   }
   return FOChannel;
   printf("%i -> %i\n", FEDChannel, FOChannel);
 }
-
-
 
 TH1F *FidHistFrom2D(TH2F *hIN, TString const NewName, int const NBins, PLTPlane::FiducialRegion FidRegion)
 {
@@ -135,14 +133,30 @@ TH1F *FidHistFrom2D(TH2F *hIN, TString const NewName, int const NBins, PLTPlane:
   return h;
 }
 
+std::string getTime(uint32_t milisec)
+{
+  // A utility function which returns the time in readable format.
+  std::stringstream buf;
+
+  int seconds = milisec / 1000;
+  int hr = seconds / 3600;
+  int min = (seconds - (hr * 3600)) / 60;
+  int sec = seconds % 60;
+  buf << std::setfill('0') << std::setw(2)
+      << hr << ":" << std::setw(2) << min << ":" << std::setw(2) << sec << "."
+      << std::setw(3) << milisec % 1000;
+  return buf.str();
+}
 // CODE BELOW
 
-int OccupancyPlots(std::string const DataFileName)
+int OccupancyPlots(std::string const DataFileName, uint32_t StartTime, uint32_t EndTime)
 {
   // Set some basic style
   PLTU::SetStyle();
 
   std::cout << "DataFileName:    " << DataFileName << std::endl;
+  std::cout << "StartTime: " << getTime(StartTime * 1000) << std::endl;
+  std::cout << "EndTime: " << getTime(EndTime * 1000) << std::endl;
 
   // Grab the plt event reader
   PLTEvent Event(DataFileName);
@@ -173,26 +187,37 @@ int OccupancyPlots(std::string const DataFileName)
   // Error histogram
   TH1F *hErrors = new TH1F("Errors", "Errors", 6, -0.5, 5.5);
 
-  // char buffer for writing names
-  char BUFF[200];
+  uint32_t eventCount = 0;  // to limit the number of events
+  char BUFF[200]; // char buffer for writing names
+  
   // Loop over all events in file
   for (int ientry = 0; Event.GetNextEvent() >= 0; ++ientry)
   {
     if (ientry % 500000 == 0)
     {
-      int nsec = Event.Time() / 1000;
-      int hr = nsec / 3600;
-      int min = (nsec - (hr * 3600)) / 60;
-      int sec = nsec % 60;
-      std::cout << "Processing event: " << ientry << " at " << std::setfill('0') << std::setw(2) << hr << ":" << std::setw(2) << min << ":" << std::setw(2) << sec << "." << std::setw(3) << Event.Time() % 1000 << std::endl;
+      std::cout << "Processing event: " << ientry << " at " << getTime(Event.Time()) << std::endl;
     }
 
-    // if (ientry > 3000000) {
-    if (ientry > 3000000)
+    // std::cout << Event.Time() << " " << StartTime << std::endl;
+    if (Event.Time() < StartTime * 1000)
+      continue;
+
+    eventCount++;
+
+    if (eventCount >= 3000000 || Event.Time() >= EndTime * 1000)
     {
+      std::cout << eventCount << std::endl;
+      std::cout << Event.Time() << std::endl;
       std::cout << "Reached maximum number of events; exiting" << std::endl;
       break;
     }
+
+    // if (ientry > 3000000) {
+    // if (ientry > 3000000)
+    // {
+    //   std::cout << "Reached maximum number of events; exiting" << std::endl;
+    //   break;
+    // }
 
     // Loop over all planes with hits in event
     for (size_t ip = 0; ip != Event.NPlanes(); ++ip)
@@ -226,7 +251,7 @@ int OccupancyPlots(std::string const DataFileName)
 
           // THIS hit is
           PLTHit *Hit = Cluster->Hit(ihit);
-          //printf("Channel ROC Row Col ADC: %2i %1i %2i %2i %4i %12i\n", Hit->Channel(), Hit->ROC(), Hit->Row(), Hit->Column(), Hit->ADC(), Event.EventNumber());
+          // printf("Channel ROC Row Col ADC: %2i %1i %2i %2i %4i %12i\n", Hit->Channel(), Hit->ROC(), Hit->Row(), Hit->Column(), Hit->ADC(), Event.EventNumber());
 
           // Ignore hits on a 2-pixel wide boaders - Nimmitha
           if (Hit->Row() < 3 || Hit->Row() > 76 || Hit->Column() < 3 || Hit->Column() > 48)
@@ -430,10 +455,10 @@ int OccupancyPlots(std::string const DataFileName)
     printf("Drawing hist for Channel %2i ROC %i\n", Channel, ROC);
 
     // Grab a 1-D hist from the 2D occupancy
-    
+
     // Nimmitha: changing the range of 1DZ plots
-    TH1F* hOccupancy1D = PLTU::HistFrom2D(it->second, 0, 1600, "", 50);
-    //TH1F *hOccupancy1D = PLTU::HistFrom2D(it->second, "", 50);
+    TH1F *hOccupancy1D = PLTU::HistFrom2D(it->second, 0, 1600, "", 50);
+    // TH1F *hOccupancy1D = PLTU::HistFrom2D(it->second, "", 50);
 
     // Draw the 2D and 1D distribution on occupancy canvas
     cOccupancyMap[Channel]->cd(ROC + 1);
@@ -595,14 +620,17 @@ int OccupancyPlots(std::string const DataFileName)
 
 int main(int argc, char *argv[])
 {
-  if (argc != 2)
+  if (argc != 4)
   {
-    std::cerr << "Usage: " << argv[0] << " [DataFile.dat]" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " [DataFile.dat] [StartTime: 0 to skip] ] [EndTime: 0 to skip]" << std::endl;
     return 1;
   }
 
   std::string const DataFileName = argv[1];
-  OccupancyPlots(DataFileName);
+  uint32_t StartTime = std::stoi(argv[2]);
+  uint32_t EndTime = std::stoi(argv[3]);
+
+  OccupancyPlots(DataFileName, StartTime, EndTime);
 
   return 0;
 }

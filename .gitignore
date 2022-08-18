@@ -11,6 +11,7 @@ lib/*
 data
 plotScripts/*.d
 plotScripts/*.so
+.vscode/
 
 #*.*#
 *.*~
@@ -104,6 +105,7 @@ TestBXPattern
 TestDACs
 TestGainCal
 TestTextFileReader
+TrackCount
 TrackDiagnostics
 TrackingEfficiency
 TrackLumiZeroCounting
