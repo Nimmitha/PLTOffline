@@ -11,6 +11,7 @@ lib/*
 data
 plotScripts/*.d
 plotScripts/*.so
+.vscode/
 
 #*.*#
 *.*~
@@ -84,6 +85,7 @@ PrintEventNumbers
 PrintTextEvents
 ProcessHistograms
 PulseHeights
+PulseHeights_new
 PulseHeightsBorder
 PulseHeightsSignalTrack
 PulseHeightsTrack
@@ -106,6 +108,7 @@ TestBXPattern
 TestDACs
 TestGainCal
 TestTextFileReader
+TrackCount
 TrackDiagnostics
 TrackingEfficiency
 TrackLumiZeroCounting
