@@ -31,9 +31,17 @@ def fileTimestamps( year:int, fileType:str ) -> pandas.Series:
         sys.exit( printColor( 'red', f'No {fileType} files found for {year}. Please make sure to run script from pltoffline machine' ) )
     return pandas.to_datetime( pandas.Series( tsList ), format = '%Y%m%d.%H%M%S' ).sort_values()
 
-def lhcTimestamps( omsapi, year:str ) -> pandas.DataFrame:
+def lhcTimestamps( year:str ) -> pandas.DataFrame:
+    df = pandas.read_csv('https://delannoy.web.cern.ch/fills.csv')
+    lhcTS = df[df.oms_stable_beams & (df.oms_start_time>=f'{year}-01-01') & (df.oms_end_time<=f'{year+1}-01-01')][['oms_fill_number','oms_start_time', 'oms_start_stable_beam', 'oms_end_stable_beam', 'oms_end_time']]
+    rename_dict = {'oms_fill_number':'fill', 'oms_start_time':'start_time', 'oms_start_stable_beam':'start_stable_beam', 'oms_end_stable_beam':'end_stable_beam', 'oms_end_time':'end_time'}
+    lhcTS.rename(columns=rename_dict, inplace=True)
+    lhcTS.set_index('fill', inplace=True)
+    return lhcTS.apply( pandas.to_datetime, format = '%Y-%m-%dT%H:%M:%SZ' )
+    
     # return a pandas dataframe with start and end timestamps for all stable beam fills, given a year as an argument
         # CMSOMS Aggregation API python client [https://gitlab.cern.ch/cmsoms/oms-api-client]
+    """
     query = omsapi.query("fills")
     query.filter( 'stable_beams', 'true', 'EQ' ).filter( 'start_time', f'{year}-01-01', 'GE' ).filter( 'end_time', f'{year+1}-01-01', 'LE' )
     query.per_page = 1000
@@ -44,6 +52,7 @@ def lhcTimestamps( omsapi, year:str ) -> pandas.DataFrame:
     lhcTS = pandas.DataFrame.from_dict( filteredData, orient = 'index', columns = [ 'start_time', 'start_stable_beam', 'end_stable_beam', 'end_time' ] ).rename_axis('fill')
         # convert filtered dictionary into a pandas dataframe
     return lhcTS.apply( pandas.to_datetime, format = '%Y-%m-%dT%H:%M:%SZ' ) # convert all timestamps in dataframe from string to pandas datetime objects
+    """
 
 def sortTS( seriesTS:pandas.Series, startTS:pandas.Timestamp, endTS:pandas.Timestamp ) -> str:
     # find all timestamps within fill-start (with 10-second tolerance) and fill-end timestamps and return as a string
@@ -58,7 +67,7 @@ def gainCal( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     gainCalTS = [ '20150811.120552', '20150923.225334', '20151029.220336', \
                 '20160819.113115', \
                 '20170518.143905', '20170717.224815', '20170731.122306', '20170921.104620', '20171026.164159', \
-                '20180419.131317', '20180430.123258', '20180605.124858', '20180621.160623']
+                '20180419.131317', '20180430.123258', '20180605.124858', '20180621.160623', '20220803.143004']
     for ts in sorted( gainCalTS, reverse=True):
         pltTS.loc[ ( pltTS.start_time.dt.year == int(ts[0:4]) ) & ( pltTS.index >= gainCalNextFill(ts) ), 'gainCal' ] = ts
     pltTS.gainCal.fillna( method='backfill', inplace=True ) # propagate empty gainCal entries backwards from last valid entry
@@ -70,6 +79,7 @@ def alignment( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     pltTS.loc[ pltTS.start_time.dt.year == 2015, 'alignment' ] = 'Trans_Alignment_4449.dat'
     pltTS.loc[ pltTS.start_time.dt.year == 2016, 'alignment' ] = 'Trans_Alignment_4892.dat'
     pltTS.loc[ pltTS.start_time.dt.year == 2017, 'alignment' ] = 'Trans_Alignment_2017MagnetOn_Prelim.dat'
+    pltTS.loc[ pltTS.start_time.dt.year == 2022, 'alignment' ] = 'Trans_Alignment_8033.dat'
     # pltTS.loc[ 6570:6579, 'alignment' ] = 'Trans_Alignment_6666.dat' # (example)
     return pltTS
 
@@ -134,10 +144,10 @@ def convertCert():
         os.system( f'chmod 400 {certFilePath}.key' )
         printColor( 'green', 'User certificate files were configured successfully!' )
 
-def pltTimestamps( year:int, omsapi ) -> pandas.DataFrame:
+def pltTimestamps( year:int ) -> pandas.DataFrame:
     wloopTS = fileTimestamps( year, 'wloop' )
     slinkTS = fileTimestamps( year, 'slink' )
-    yearTS  = lhcTimestamps( omsapi, year )
+    yearTS  = lhcTimestamps( year )
     printColor( 'green', f'processing timestamps. beep boop...' )
     yearTS['wloopTS'] = [ sortTS( wloopTS, startTS, endTS ) for startTS,endTS in zip(yearTS['start_time'], yearTS['end_time']) ]
         # note that workloop timestamps are included from fill-declared to fill-end
@@ -146,10 +156,10 @@ def pltTimestamps( year:int, omsapi ) -> pandas.DataFrame:
     return yearTS
 
 def main():
-    omsapi = cmsomsAuth()
+    #omsapi = cmsomsAuth()
     pltTS = pandas.DataFrame()
-    for year in 2015, 2016, 2017, 2018:
-        yearTS = pltTimestamps( year, omsapi )
+    for year in 2015, 2016, 2017, 2018, 2022:
+        yearTS = pltTimestamps( year )
         pltTS = pltTS.append( yearTS )
     pltTS = gainCal( pltTS )
     pltTS = alignment( pltTS )

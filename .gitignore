@@ -6,6 +6,7 @@
 *.txt
 __pycache__/
 
+.vscode/
 test/*
 lib/*
 data
