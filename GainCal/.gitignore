@@ -2,5 +2,6 @@
 *
 
 # except this file and GainCalFits*.dat files
+!2020/
 !.gitignore
 !GainCalFits*.dat
