@@ -56,7 +56,26 @@ def lhcTimestamps( year:str ) -> pandas.DataFrame:
 
 def sortTS( seriesTS:pandas.Series, startTS:pandas.Timestamp, endTS:pandas.Timestamp ) -> str:
     # find all timestamps within fill-start (with 10-second tolerance) and fill-end timestamps and return as a string
-    tsList = seriesTS[ ( seriesTS >= startTS-pandas.Timedelta(seconds=10) ) & ( seriesTS <= endTS ) ].to_list()
+    #tsList = seriesTS[ ( seriesTS >= startTS-pandas.Timedelta(seconds=10) ) & ( seriesTS <= endTS ) ].to_list()
+    
+    # Tried this to fix the issue of having a SLINK file running for several days without restarting
+    # Cases where it included previous file: 3819,3833,3850,3851,3855,3962,3971,3974,4851,4961,5659,7652
+    # Select the amount of time we neglect from the start of the file
+    # This also includes the previous file if x seconds of data is missing in the current file
+    tolerance = pandas.Timedelta(seconds=600) 
+    
+    tsList = seriesTS[ seriesTS.ge(startTS-pandas.Timedelta(seconds=10)) & seriesTS.le(endTS) ].to_list()
+    
+    # pick the previous file that may have data for the current fill
+    prevFile = seriesTS[seriesTS.lt(startTS+tolerance)].to_list()
+    if len(prevFile) != 0:
+        prevFile = prevFile[-1]
+        if prevFile not in tsList:
+            if len(tsList) == 0:
+                tsList.append(prevFile)
+            elif prevFile < tsList[0]:
+                tsList.insert(0, prevFile)
+    
     return str.join( ' ', [ ts.strftime("%Y%m%d.%H%M%S") for ts in tsList ] ) # return a string with timestamps in the list separated by spaces
 
 def gainCal( pltTS:pandas.DataFrame ) -> pandas.DataFrame:

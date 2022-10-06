@@ -7,6 +7,9 @@
 __pycache__/
 
 .vscode/
+BackgroundFraction/plots/*
+BackgroundFraction/logs/*
+BackgroundFraction/temp/*
 test/*
 lib/*
 data
@@ -48,6 +51,7 @@ MakeIdealGainCal
 MakeLumiGraphs
 MakeStraightAlignment
 MakeTracks
+MakeTracks_nk
 MakeTrimCalFileFake
 MeasureAccidentals
 MeasureAccidentalsBX
@@ -82,6 +86,7 @@ PrintEventNumbers
 PrintTextEvents
 ProcessHistograms
 PulseHeights
+PulseHeights_new
 PulseHeightsBorder
 PulseHeightsSignalTrack
 PulseHeightsTrack

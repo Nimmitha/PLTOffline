@@ -2,8 +2,8 @@ import csv
 import subprocess
 import pandas
 
-path = "/afs/cern.ch/user/n/nkarunar/old_plt/PLTOffline/"
-command = [path + 'MakeTracks']
+path = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
+command = [path + 'MakeTracks_nk']
 
 
 def runMakeTrack(row):
@@ -19,7 +19,7 @@ def pltTimestamps():
     # import pltTimestamps.csv file as dataframe (contains slink and workloop timestamps corresponding to all stable beam fills)
 
     def parseDate(x): return pandas.to_datetime(x, format='%Y%m%d.%H%M%S')
-    with open('/localdata/pltTimestamps.csv', 'r') as tsFile:
+    with open(path+'pltTimestamps.csv', 'r') as tsFile:
         cols = tsFile.readline().strip().split('|')
         tsFile.seek(0)
         dtypes = dict(zip(cols, ['int']+9*['str']))
@@ -57,6 +57,7 @@ def getTracks():
         csvreader = csv.reader(csvfile, delimiter=",")
 
         pltTS = pltTimestamps()
+        print(pltTS)
 
         for row in csvreader:
             fill = int(row[3])
@@ -64,8 +65,8 @@ def getTracks():
             Slink = pltTS.loc[fill, 'slinkTS'].split()
             year = Slink[0][:4]
 
-            if year == "2015":
-                unzipFiles(Slink)
+            #if year == "2015":
+            #    unzipFiles(Slink)
 
             gainCal = path + "GainCal/2020/GainCalFits_" + pltTS.loc[fill, 'gainCal'] + ".dat"
             alignment = path + "ALIGNMENT/" + pltTS.loc[fill, 'alignment']
@@ -74,15 +75,15 @@ def getTracks():
             row[2] = alignment
 
             hh, mm = [int(x) for x in row[4].split(":")]
-            row[4] = str((hh*3600 + mm*60) * 1000)
+            row[4] = str((hh*3600 + mm*60)) #* 1000)
 
             hh, mm = [int(x) for x in row[5].split(":")]
-            row[5] = str((hh*3600 + mm*60) * 1000)
+            row[5] = str((hh*3600 + mm*60)) #* 1000)
 
             if row[0] != "":
                 Slink = [row[0]]
-                #row[0] = "/localdata/2016/SLINK/Slink_" + row[0] + ".dat"
-                row[0] = "/home/nkarunar/dat_files/Slink_" + row[0] + ".dat"
+                row[0] = "/localdata/2022/SLINK/Slink_" + row[0] + ".dat"
+                #row[0] = "/home/nkarunar/dat_files/Slink_" + row[0] + ".dat"
 
             print(Slink)
             
@@ -91,13 +92,13 @@ def getTracks():
                 # run for each file
                 for i, file_name in enumerate(Slink):
                     row[3] = str(fill) + "_" + str(i)
-                    row[0] = "/localdata/2016/SLINK/Slink_" + file_name + ".dat"
+                    row[0] = "/localdata/2022/SLINK/Slink_" + file_name + ".dat"
                     #row[0] = "/home/nkarunar/dat_files/Slink_" + file_name + ".dat"
                     runMakeTrack(row)
             else:
                 # run once
-                #row[0] = "/localdata/2016/SLINK/Slink_" + Slink[0] + ".dat"
-                row[0] = "/home/nkarunar/dat_files/Slink_" + Slink[0] + ".dat"
+                row[0] = "/localdata/2022/SLINK/Slink_" + Slink[0] + ".dat"
+                #row[0] = "/home/nkarunar/dat_files/Slink_" + Slink[0] + ".dat"
                 runMakeTrack(row)
 
 
