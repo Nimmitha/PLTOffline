@@ -2,7 +2,7 @@
 //
 // Nimmitha Karunarathna
 //
-// Created on: 2022-08-10
+// Created on: Fri May  8 18:26:18 UTC 2015
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -37,8 +37,7 @@ int TrackCount(std::string const DataFileName, std::string const GainCalFileName
   Alignment.ReadAlignmentFile(AlignmentFileName);
 
   std::string dateToken = DataFileName.substr(28, 15);
-  std::string fileName = "/eos/home-n/nkarunar/data/slink_data/outputs/" + dateToken + "_TrackCount.csv"; 
-
+  std::string fileName = "/eos/home-n/nkarunar/data/slink_data/csv_outputs/" + dateToken + "_TrackCount.csv"; 
   std::cout << "\n Output file: " << fileName << std::endl;
 
   std::ofstream myfile;
@@ -115,3 +114,23 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+
+
+
+// for (int ientry = 0; Event.GetNextEvent() >= 0; ++ientry)
+//   {
+//     if (ientry % 10000 == 0)
+//     {
+//       std::cout << "Processing entry: " << ientry << std::endl;
+//     }
+
+//     // Loop over all planes with hits in event
+//     for (size_t it = 0; it != Event.NTelescopes(); ++it)
+//     {
+//       // THIS telescope is
+//       PLTTelescope *Telescope = Event.Telescope(it);
+
+//       #save Telescope->NTracks() values
+//     }
+
+//   }
