@@ -64,7 +64,7 @@ def sortTS( seriesTS:pandas.Series, startTS:pandas.Timestamp, endTS:pandas.Times
     # This also includes the previous file if x seconds of data is missing in the current file
     tolerance = pandas.Timedelta(seconds=600) 
     
-    tsList = seriesTS[ seriesTS.ge(startTS-pandas.Timedelta(seconds=10)) & seriesTS.le(endTS) ].to_list()
+    tsList = seriesTS[ seriesTS.ge(startTS-pandas.Timedelta(seconds=10)) & seriesTS.le(endTS-pandas.Timedelta(seconds=10)) ].to_list()
     
     # pick the previous file that may have data for the current fill
     prevFile = seriesTS[seriesTS.lt(startTS+tolerance)].to_list()

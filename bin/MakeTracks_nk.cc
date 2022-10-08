@@ -4,6 +4,7 @@
 //
 // Created on: Thu Mar  8 18:26:18 UTC 2012
 //
+// Modified by Nimmitha : all the time
 ////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -17,7 +18,7 @@
 // FUNCTION DEFINITIONS HERE
 int MakeTracks(std::string const, std::string const, std::string const, std::string const FillNumber, const uint32_t StartTime, const uint32_t EndTime);
 
-// Nimmitha
+// Retruns time as PLT time
 uint32_t tofTime(uint32_t hh, uint32_t mm, uint32_t ss)
 {
   return (hh * 3600 + mm * 60 + ss) * 1000;
@@ -37,7 +38,6 @@ std::string getTime(uint32_t milisec)
       << std::setw(3) << milisec % 1000;
   return buf.str();
 }
-// Nimmitha
 
 int MakeTracks(std::string const DataFileName, std::string const GainCalFileName, std::string const AlignmentFileName, std::string const FillNumber, uint32_t StartTime, uint32_t EndTime)
 {
@@ -58,13 +58,14 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   PLTAlignment Alignment;
   Alignment.ReadAlignmentFile(AlignmentFileName);
 
+  // Define file name, file path and Title of the TTree
   std::string fName = FillNumber + "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
   std::string fPathString = "/home/nkarunar/root_files/" + fName + ".root";
-  std::string tNameString = "Tree with Fill " + fName + " data";
+  std::string tNameString = "Track parameters for fill " + fName;
 
   uint32_t event;
   uint32_t Channel;
-  uint32_t event_time;
+  float_t event_time;
   float_t SlopeX, SlopeY;
   float_t ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2;
   float_t BeamspotX_y, BeamspotX_z, BeamspotY_x, BeamspotY_z,BeamSpotZ_x, BeamSpotZ_y;
@@ -74,12 +75,14 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   char *fPath = &fPathString[0];
   char *tName = &tNameString[0];
 
+  // Create new ROOT file, open TTree
   TFile *f = new TFile(fPath, "RECREATE");
   TTree *T = new TTree("T", tName);
 
+  // Define branch variables
   T->Branch("event", &event, "event/I");
   T->Branch("track", &track, "track/I");
-  T->Branch("event_time", &event_time, "event_time/I");
+  T->Branch("event_time", &event_time, "event_time/F");
   T->Branch("Channel", &Channel, "Channel/I");
   T->Branch("SlopeX", &SlopeX, "SlopeX/F");
   T->Branch("SlopeY", &SlopeY, "SlopeY/F");
@@ -131,18 +134,17 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
     if (Event.Time() < StartTime * 1000)
       continue;
 
-    if (track >= 50000000 || Event.Time() >= EndTime * 1000)
-    {
-      break;
-    }
+    // if (track >= UINT32_MAX-1 || Event.Time() >= EndTime * 1000)
+    // {
+    //   break;
+    // }
 
     prev_time = Event.ReadableTime();
-    event_time = Event.Time() / 1000;
+    event_time = Event.Time();
 
     // Loop over all planes with hits in event
     for (size_t it = 0; it != Event.NTelescopes(); ++it)
     {
-
       // THIS telescope is
       PLTTelescope *Telescope = Event.Telescope(it);
 
@@ -155,7 +157,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
       {
         PLTTrack *Track = Telescope->Track(itrack);
 
-        if (track % 10000 == 0)
+        if (track % 100000 == 0)
         {
           std::cout << "Processing entry: " << ientry << " - ";
           std::cout << Event.ReadableTime() << " - Track Index :" << track << std::endl;
