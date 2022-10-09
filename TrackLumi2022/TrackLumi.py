@@ -1,7 +1,7 @@
 import os
 import subprocess
-from tkinter import E
 import pandas as pd
+from nf import post_to_slack
 
 
 PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
@@ -55,6 +55,10 @@ def getTracks(pltTS):
 
     for index, row in pltTS.iterrows():
         fill = int(row.name)
+        
+        # Send notifications
+        post_to_slack(message_text="Working on "+str(fill))
+
         print("Working on", fill)
 
         hh = row.start_stable_beam.hour
