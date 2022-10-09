@@ -1,5 +1,6 @@
 import os
 import subprocess
+from tkinter import E
 import pandas as pd
 
 
@@ -51,50 +52,36 @@ def run_fix_track_numbers(rootfName):
     print(x)
 
 
-def gather_arguments(row):
-    fill = int(row.name)
-    print("Working on", fill)
-    print(row.slinkTS)
-
-
-
-
-    hh = row.start_stable_beam.hour
-    mm = row.start_stable_beam.minute
-    StartTime = str(hh*3600 + mm*60)
-
-    hh = row.end_stable_beam.hour
-    mm = row.end_stable_beam.minute
-    EndTime = str(hh*3600 + mm*60)
-    rootfName = str(fill) + "_" + StartTime + "_" + EndTime
-    print("Check if", rootfName, "already exists.")
-
-    if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
-        print("ROOT file", rootfName, "already exists. Skipping..")
-        return None
-
-    print("ROOT file not found. Creating", rootfName)
-
-    slink_files = row.slinkTS.split()
-    # print(slink_files)
-
-    gainCal = os.path.join(
-        PLT_PATH, f"GainCal/2020/GainCalFits_{row.gainCal}.dat")
-    alignment = os.path.join(PLT_PATH, "ALIGNMENT", row.alignment)
-
-    return fill, gainCal, alignment, slink_files, StartTime, EndTime
-
-
 def getTracks(pltTS):
 
     for index, row in pltTS.iterrows():
-        out = gather_arguments(row)
+        fill = int(row.name)
+        print("Working on", fill)
 
-        if out == None:
-            continue
+        hh = row.start_stable_beam.hour
+        mm = row.start_stable_beam.minute
+        StartTime = str(hh*3600 + mm*60)
 
-        fill, gainCal, alignment, slink_files, StartTime, EndTime = out
+        hh = row.end_stable_beam.hour
+        mm = row.end_stable_beam.minute
+        EndTime = str(hh*3600 + mm*60)
 
+        # Naming the file as usual, time relative to the day
+        rootfName = str(fill) + "_" + StartTime + "_" + EndTime
+        print("Check if", rootfName, "already exists.")
+
+        if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
+            print("ROOT file", rootfName, "already exists. Skipping..")
+            # return
+
+        print("ROOT file not found. Creating", rootfName)
+
+        gainCal = os.path.join(
+            PLT_PATH, f"GainCal/2020/GainCalFits_{row.gainCal}.dat")
+        alignment = os.path.join(PLT_PATH, "ALIGNMENT", row.alignment)
+
+        slink_files = row.slinkTS.split()
+        # print(slink_files)
         nslink_files = len(slink_files)
         if nslink_files == 0:
             print(f"No slink file. Skipping {fill}")
@@ -114,23 +101,46 @@ def getTracks(pltTS):
                 arg_MakeTrack[3] = str(fill) + "_" + str(i)
                 arg_MakeTrack[0] = os.path.join(
                     '/localdata', year,  f'SLINK/Slink_{slink_file}.dat')
-                # arg_MakeTrack[0] = "/localdata/"+year +  "/SLINK/Slink_" + slink_file + ".dat"
+
+                slink_date = pd.to_datetime(slink_file, format='%Y%m%d.%H%M%S')
+                startTime_adjust = int(
+                    (row.start_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
+                endTime_adjust = int(
+                    (row.end_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
+
+                AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
+                AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
+                arg_MakeTrack[4] = str(AStartTime)
+                arg_MakeTrack[5] = str(AEndTime)
+
                 runMakeTrack(arg_MakeTrack)
-                combine_root_files(fill, StartTime, EndTime, nslink_files)
+            combine_root_files(fill, StartTime, EndTime, nslink_files)
 
         else:
             # run once
             arg_MakeTrack[0] = os.path.join(
                 '/localdata', year,  f'SLINK/Slink_{slink_files[0]}.dat')
+
+            slink_date = pd.to_datetime(slink_files[0], format='%Y%m%d.%H%M%S')
+            startTime_adjust = int(
+                (row.start_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
+            endTime_adjust = int(
+                (row.end_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
+
+            AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
+            AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
+            arg_MakeTrack[4] = str(AStartTime)
+            arg_MakeTrack[5] = str(AEndTime)
+
             runMakeTrack(arg_MakeTrack)
 
 
 def main():
     pltTS = pltTimestamps()
 
-    start_fill, end_fill = 8078, 8078
+    start_fill, end_fill = 8149, 8149
     pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
-    # pltTS['start_stable_beam'] = pd.to_datetime(pltTS['start_stable_beam'])
+
     # print(pltTS)
     getTracks(pltTS)
 
