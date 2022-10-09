@@ -25,20 +25,19 @@ def pltTimestamps():
 
 def runMakeTrack(arg_MakeTrack):
     cmd_MakeTrack = [PLT_PATH + "MakeTracks_nk"] + arg_MakeTrack
-    print("\n"+"*"*150)
+    print("\n"+"*"*50)
     print("Running : ", cmd_MakeTrack)
-    print("*"*150)
+    print("*"*50)
     x = subprocess.run(cmd_MakeTrack)
     print(x)
 
 
 def combine_root_files(fill, StartTime, EndTime, nslink_files):
     print(" Combining", nslink_files, "root files.")
-    rootfName = str(fill) + "_" + StartTime + "_" + EndTime
+    rootfName = str(fill)
     cmd_hadd = ["hadd", "-f"] + [rootfName + "_raw" + FILE_EXT]
     for i in range(nslink_files):
-        cmd_hadd += [str(fill) + "_" + str(i) + "_" +
-                     StartTime + "_" + EndTime + FILE_EXT]
+        cmd_hadd += [str(fill) + "_" + str(i) + FILE_EXT]
     x = subprocess.run(cmd_hadd, cwd=FILE_PATH)
     print(x)
     run_fix_track_numbers(rootfName)
@@ -66,8 +65,7 @@ def getTracks(pltTS):
         mm = row.end_stable_beam.minute
         EndTime = str(hh*3600 + mm*60)
 
-        # Naming the file as usual, time relative to the day
-        rootfName = str(fill) + "_" + StartTime + "_" + EndTime
+        rootfName = str(fill) # + "_" + StartTime + "_" + EndTime
         print("Check if", rootfName, "already exists.")
 
         if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
@@ -114,7 +112,7 @@ def getTracks(pltTS):
                 arg_MakeTrack[5] = str(AEndTime)
 
                 runMakeTrack(arg_MakeTrack)
-            combine_root_files(fill, StartTime, EndTime, nslink_files)
+            combine_root_files(fill, str(AStartTime), str(AEndTime), nslink_files)
 
         else:
             # run once
@@ -138,10 +136,13 @@ def getTracks(pltTS):
 def main():
     pltTS = pltTimestamps()
 
-    start_fill, end_fill = 8149, 8149
-    pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
+    start_fill, end_fill = 8112, 8220 #8149, 8149
+    exclude_fill = [8178]
 
-    # print(pltTS)
+    pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
+    pltTS = pltTS.loc[pltTS.index.drop(exclude_fill)]
+
+    print("List of fills:", list(pltTS.index))
     getTracks(pltTS)
 
 

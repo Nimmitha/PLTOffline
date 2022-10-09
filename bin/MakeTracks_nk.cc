@@ -59,7 +59,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   Alignment.ReadAlignmentFile(AlignmentFileName);
 
   // Define file name, file path and Title of the TTree
-  std::string fName = FillNumber + "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
+  std::string fName = FillNumber; //+ "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
   std::string fPathString = "/home/nkarunar/root_files/" + fName + ".root";
   std::string tNameString = "Track parameters for fill " + fName;
 
@@ -126,7 +126,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   std::cout << "\nLooping through events.\n\n";
   for (int ientry = 0; Event.GetNextEvent() >= 0; ++ientry)
   {
-    if (ientry % 100000 == 0)
+    if (ientry % 1000000 == 0)
     {
       std::cout << "Entry: " << ientry << "\t" << Event.ReadableTime() << std::endl;
     }
@@ -134,10 +134,10 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
     if (Event.Time() < StartTime * 1000)
       continue;
 
-    // if (track >= UINT32_MAX-1 || Event.Time() >= EndTime * 1000)
-    // {
-    //   break;
-    // }
+    if (track >= UINT32_MAX-1 || Event.Time() >= EndTime * 1000)
+    {
+      break;
+    }
 
     prev_time = Event.ReadableTime();
     event_time = Event.Time();
@@ -157,7 +157,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
       {
         PLTTrack *Track = Telescope->Track(itrack);
 
-        if (track % 100000 == 0)
+        if (track % 1000000 == 0)
         {
           std::cout << "Processing entry: " << ientry << " - ";
           std::cout << Event.ReadableTime() << " - Track Index :" << track << std::endl;
