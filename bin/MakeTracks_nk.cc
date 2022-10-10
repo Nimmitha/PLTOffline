@@ -14,9 +14,10 @@
 #include "PLTU.h"
 #include "TFile.h"
 #include "TTree.h"
+#include <ctime>
 
 // FUNCTION DEFINITIONS HERE
-int MakeTracks(std::string const, std::string const, std::string const, std::string const FillNumber, const uint32_t StartTime, const uint32_t EndTime);
+int MakeTracks(std::string const, std::string const, std::string const, std::string const FillNumber, const uint32_t StartTime, const uint32_t EndTime, const time_t EpochDate);
 
 // Retruns time as PLT time
 uint32_t tofTime(uint32_t hh, uint32_t mm, uint32_t ss)
@@ -39,7 +40,7 @@ std::string getTime(uint32_t milisec)
   return buf.str();
 }
 
-int MakeTracks(std::string const DataFileName, std::string const GainCalFileName, std::string const AlignmentFileName, std::string const FillNumber, uint32_t StartTime, uint32_t EndTime)
+int MakeTracks(std::string const DataFileName, std::string const GainCalFileName, std::string const AlignmentFileName, std::string const FillNumber, uint32_t StartTime, uint32_t EndTime, const time_t EpochDate)
 {
   std::cout << "DataFileName:      " << DataFileName << std::endl;
   std::cout << "GainCalFileName:   " << GainCalFileName << std::endl;
@@ -47,6 +48,12 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   std::cout << "FillNumber: " << FillNumber << std::endl;
   std::cout << "StartTime: " << getTime(StartTime * 1000) << std::endl;
   std::cout << "EndTime: " << getTime(EndTime * 1000) << std::endl;
+  std::cout << "EpochDate: " << EpochDate << std::endl;
+
+  time_t EpochTime;
+  u_int32_t msecs;
+  char buffer[24];
+  bool haveTime;
 
   // Grab the plt event reader
   PLTEvent Event(DataFileName, GainCalFileName, AlignmentFileName);
@@ -65,10 +72,11 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
   uint32_t event;
   uint32_t Channel;
-  float_t event_time;
+  // float_t event_time;
+  std::string event_time;
   float_t SlopeX, SlopeY;
   float_t ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2;
-  float_t BeamspotX_y, BeamspotX_z, BeamspotY_x, BeamspotY_z,BeamSpotZ_x, BeamSpotZ_y;
+  float_t BeamspotX_y, BeamspotX_z, BeamspotY_x, BeamspotY_z, BeamSpotZ_x, BeamSpotZ_y;
 
   uint32_t track = 0;
 
@@ -82,7 +90,8 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   // Define branch variables
   T->Branch("event", &event, "event/I");
   T->Branch("track", &track, "track/I");
-  T->Branch("event_time", &event_time, "event_time/F");
+  // T->Branch("event_time", &event_time, "event_time/F");
+  T->Branch("event_time", &event_time);
   T->Branch("Channel", &Channel, "Channel/I");
   T->Branch("SlopeX", &SlopeX, "SlopeX/F");
   T->Branch("SlopeY", &SlopeY, "SlopeY/F");
@@ -134,13 +143,23 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
     if (Event.Time() < StartTime * 1000)
       continue;
 
-    if (track >= UINT32_MAX-1 || Event.Time() >= EndTime * 1000)
+    if (track >= UINT32_MAX - 1 || Event.Time() >= EndTime * 1000)
     {
       break;
     }
 
     prev_time = Event.ReadableTime();
-    event_time = Event.Time();
+    // msecs = Event.Time()%1000;
+    // EpochTime = EpochDate + Event.Time()/1000;
+    // tm *ltm = localtime(&EpochTime);
+
+    // strftime(buffer, 24, "%F %T", ltm);
+    // event_time = buffer;
+    // event_time = event_time + "." + std::to_string(msecs);
+
+    // std::cout<< "THIS IS NEW " << event_time << std::endl;
+
+    haveTime = false;
 
     // Loop over all planes with hits in event
     for (size_t it = 0; it != Event.NTelescopes(); ++it)
@@ -163,8 +182,22 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
           std::cout << Event.ReadableTime() << " - Track Index :" << track << std::endl;
         }
 
+        if (haveTime == false)
+        {
+          msecs = Event.Time() % 1000;
+          EpochTime = EpochDate + Event.Time() / 1000;
+          tm *ltm = localtime(&EpochTime);
+
+          strftime(buffer, 24, "%F %T", ltm);
+          event_time = buffer;
+          event_time = event_time + "." + std::to_string(msecs);
+
+          std::cout << "Processing entry: " << event_time << std::endl;
+          haveTime = true;
+        }
+
         event = ientry;
-        //track = itrack;
+        // track = itrack;
         SlopeX = Track->fTVX / Track->fTVZ;
         SlopeY = Track->fTVY / Track->fTVZ;
         ResidualX_ROC0 = Track->LResidualX(0);
@@ -199,9 +232,9 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
 int main(int argc, char *argv[])
 {
-  if (argc != 7)
+  if (argc != 8)
   {
-    std::cerr << "Usage: " << argv[0] << " [DataFile.dat] [GainCal.dat] [AlignmentFile.dat] [FillNumber] [StartTime] [EndTime]" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " [DataFile.dat] [GainCal.dat] [AlignmentFile.dat] [FillNumber] [StartTime] [EndTime] [EpochDate]" << std::endl;
     return 1;
   }
 
@@ -211,8 +244,10 @@ int main(int argc, char *argv[])
   std::string const FillNumber = argv[4];
   uint32_t StartTime = std::stoi(argv[5]);
   uint32_t EndTime = std::stoi(argv[6]);
+  time_t EpochDate = std::stoi(argv[7]);
+  // std::string const EpochDate = argv[7];
 
-  MakeTracks(DataFileName, GainCalFileName, AlignmentFileName, FillNumber, StartTime, EndTime);
+  MakeTracks(DataFileName, GainCalFileName, AlignmentFileName, FillNumber, StartTime, EndTime, EpochDate);
 
   return 0;
 }

@@ -24,7 +24,7 @@ void fix_track_numbers(std::string FileName){
     Int_t track;
     Int_t event;
     Int_t Channel;
-    float_t event_time;
+    std::string event_time;
     float_t SlopeX, SlopeY;
     float_t ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2;
     float_t BeamspotX_y, BeamspotX_z, BeamspotY_x, BeamspotY_z,BeamSpotZ_x, BeamSpotZ_y;
@@ -57,7 +57,7 @@ void fix_track_numbers(std::string FileName){
 
     T.Branch("event", &event, "event/I");
     T.Branch("track", &track, "track/I");
-    T.Branch("event_time", &event_time, "event_time/F");
+    T.Branch("event_time", &event_time);
     T.Branch("Channel", &Channel, "Channel/I");
     T.Branch("SlopeX", &SlopeX, "SlopeX/F");
     T.Branch("SlopeY", &SlopeY, "SlopeY/F");

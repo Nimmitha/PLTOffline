@@ -3,20 +3,22 @@ import sys
 import subprocess
 import pandas as pd
 
-sys.path.insert(0, '~/utils')
+sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
 from nf import post_to_slack
 
-
 # PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
-PLT_PATH = "/home/nkarunar/PLTOffline/"
+# PLT_PATH = "/home/nkarunar/PLTOffline/"
+PLT_PATH = os.getcwd().rsplit("/", 1)[0]
 FILE_PATH = "/home/nkarunar/root_files/"
 FILE_EXT = ".root"
+
+print("Working from:", PLT_PATH)
 
 
 def pltTimestamps():
     # import pltTimestamps.csv file as dataframe (contains slink_files and workloop timestamps corresponding to all stable beam fills)
     def parseDate(x): return pd.to_datetime(x, format='%Y%m%d.%H%M%S')
-    with open(PLT_PATH+'pltTimestamps.csv', 'r') as tsFile:
+    with open(os.path.join(PLT_PATH, 'pltTimestamps.csv'), 'r') as tsFile:
         cols = tsFile.readline().strip().split('|')
         tsFile.seek(0)
         dtypes = dict(zip(cols, ['int']+9*['str']))
@@ -28,7 +30,7 @@ def pltTimestamps():
 
 
 def runMakeTrack(arg_MakeTrack):
-    cmd_MakeTrack = [PLT_PATH + "MakeTracks_nk"] + arg_MakeTrack
+    cmd_MakeTrack = [os.path.join(PLT_PATH, "MakeTracks_nk")] + arg_MakeTrack
     print("\n"+"*"*50)
     print("Running : ", cmd_MakeTrack)
     print("*"*50)
@@ -59,7 +61,7 @@ def getTracks(pltTS):
 
     for index, row in pltTS.iterrows():
         fill = int(row.name)
-        
+
         # Send notifications
         post_to_slack(message_text="Working on "+str(fill))
 
@@ -73,7 +75,7 @@ def getTracks(pltTS):
         mm = row.end_stable_beam.minute
         EndTime = str(hh*3600 + mm*60)
 
-        rootfName = str(fill) # + "_" + StartTime + "_" + EndTime
+        rootfName = str(fill)  # + "_" + StartTime + "_" + EndTime
         print("Check if", rootfName, "already exists.")
 
         if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
@@ -114,13 +116,24 @@ def getTracks(pltTS):
                 endTime_adjust = int(
                     (row.end_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
 
+                dateToSend = row.start_stable_beam.date()
+
+                if startTime_adjust < 0:
+                    dateToSend = dateToSend + pd.Timedelta(abs(startTime_adjust), 'D')
+                    startTime_adjust = 0
+                if endTime_adjust < 0:
+                    endTime_adjust = 0
+
                 AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
                 AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
+
                 arg_MakeTrack[4] = str(AStartTime)
                 arg_MakeTrack[5] = str(AEndTime)
+                arg_MakeTrack.append(str(dateToSend.strftime("%s")))
 
                 runMakeTrack(arg_MakeTrack)
-            combine_root_files(fill, str(AStartTime), str(AEndTime), nslink_files)
+            combine_root_files(fill, str(AStartTime),
+                               str(AEndTime), nslink_files)
 
         else:
             # run once
@@ -135,8 +148,23 @@ def getTracks(pltTS):
 
             AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
             AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
+
+            dateToSend = row.start_stable_beam.date()
+            print(dateToSend)
+            # print(dateToSend.strftime("%s"))
+
+            if startTime_adjust < 0:
+                dateToSend = dateToSend + pd.Timedelta(abs(startTime_adjust), 'D')
+                startTime_adjust = 0
+            if endTime_adjust < 0:
+                endTime_adjust = 0
+
+            AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
+            AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
+
             arg_MakeTrack[4] = str(AStartTime)
             arg_MakeTrack[5] = str(AEndTime)
+            arg_MakeTrack.append(str(dateToSend.strftime("%s")))
 
             runMakeTrack(arg_MakeTrack)
 
@@ -144,14 +172,24 @@ def getTracks(pltTS):
 def main():
     pltTS = pltTimestamps()
 
-    start_fill, end_fill = 8112, 8220 #8149, 8149
+    # start_fill, end_fill = 8112, 8220 #8149, 8149
+    start_fill, end_fill = 8121, 8121  # 8149, 8149
     exclude_fill = [8178]
 
     pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
-    pltTS = pltTS.loc[pltTS.index.drop(exclude_fill)]
+    try:
+        pltTS = pltTS.loc[pltTS.index.drop(exclude_fill)]
+    except:
+        pass
 
     print("List of fills:", list(pltTS.index))
-    getTracks(pltTS)
+    post_to_slack(message_text="Found:"+str.join(",",
+                  [str(i) for i in list(pltTS.index)]))
+    try:
+        getTracks(pltTS)
+    except Exception as e:
+        print(e)
+        post_to_slack(message_text=e)
 
 
 if __name__ == "__main__":
