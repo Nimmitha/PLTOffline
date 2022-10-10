@@ -1,10 +1,14 @@
 import os
+import sys
 import subprocess
 import pandas as pd
+
+sys.path.insert(0, '~/utils')
 from nf import post_to_slack
 
 
-PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
+# PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
+PLT_PATH = "/home/nkarunar/PLTOffline/"
 FILE_PATH = "/home/nkarunar/root_files/"
 FILE_EXT = ".root"
 
@@ -12,7 +16,7 @@ FILE_EXT = ".root"
 def pltTimestamps():
     # import pltTimestamps.csv file as dataframe (contains slink_files and workloop timestamps corresponding to all stable beam fills)
     def parseDate(x): return pd.to_datetime(x, format='%Y%m%d.%H%M%S')
-    with open('/eos/home-n/nkarunar/workrepos/PLTOffline/pltTimestamps.csv', 'r') as tsFile:
+    with open(PLT_PATH+'pltTimestamps.csv', 'r') as tsFile:
         cols = tsFile.readline().strip().split('|')
         tsFile.seek(0)
         dtypes = dict(zip(cols, ['int']+9*['str']))
