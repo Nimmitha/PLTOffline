@@ -192,7 +192,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
           event_time = buffer;
           event_time = event_time + "." + std::to_string(msecs);
 
-          std::cout << "Processing entry: " << event_time << std::endl;
+          // std::cout << "Processing entry: " << event_time << std::endl;
           haveTime = true;
         }
 

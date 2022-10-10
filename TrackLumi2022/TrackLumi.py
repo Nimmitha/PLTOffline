@@ -172,8 +172,8 @@ def getTracks(pltTS):
 def main():
     pltTS = pltTimestamps()
 
-    # start_fill, end_fill = 8112, 8220 #8149, 8149
-    start_fill, end_fill = 8121, 8121  # 8149, 8149
+    start_fill, end_fill = 8112, 8220 #8149, 8149
+    # start_fill, end_fill = 8121, 8121  # 8149, 8149
     exclude_fill = [8178]
 
     pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
