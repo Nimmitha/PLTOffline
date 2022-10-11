@@ -164,7 +164,7 @@ def getTracks(pltTS):
 
             arg_MakeTrack[4] = str(AStartTime)
             arg_MakeTrack[5] = str(AEndTime)
-            arg_MakeTrack.append(str(dateToSend.strftime("%s")))
+            arg_MakeTrack.append(str(dateToSend.strftime("%s"))) # https://www.geeksforgeeks.org/convert-python-datetime-to-epoch/
 
             runMakeTrack(arg_MakeTrack)
 

@@ -73,7 +73,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   uint32_t event;
   uint32_t Channel;
   // float_t event_time;
-  std::string event_time;
+  std::string event_time; // https://root-forum.cern.ch/t/saving-an-array-of-character-strings-in-a-root-tree/1522/4
   float_t SlopeX, SlopeY;
   float_t ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2;
   float_t BeamspotX_y, BeamspotX_z, BeamspotY_x, BeamspotY_z, BeamSpotZ_x, BeamSpotZ_y;
@@ -184,10 +184,12 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
         if (haveTime == false)
         {
+          // https://www.tutorialspoint.com/cplusplus/cpp_date_time.htm
           msecs = Event.Time() % 1000;
           EpochTime = EpochDate + Event.Time() / 1000;
           tm *ltm = localtime(&EpochTime);
 
+          // https://cplusplus.com/reference/ctime/strftime/
           strftime(buffer, 24, "%F %T", ltm);
           event_time = buffer;
           event_time = event_time + "." + std::to_string(msecs);
