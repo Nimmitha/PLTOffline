@@ -33,7 +33,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   PLTAlignment Alignment;
   Alignment.ReadAlignmentFile(AlignmentFileName);
 
-  const Int_t KMaxHits = 100;
+  const Int_t KMaxHits = 1000;
 
   uint32_t hits;
   uint32_t event;
@@ -80,6 +80,17 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
       std::cout << "Size does not matche!!!" << std::endl;
       exit(1);
     }
+    if (hits > KMaxHits)
+    {
+      std::cout << "Array size not enough!!!" << hits << std::endl;
+      exit(1);
+    }
+
+    if (hits == 0)
+    {
+      // std::cout << "Wow! No hits!!!" << std::endl;
+      continue;
+    }
 
     // for (std::vector<PLTHit *>::iterator it = Event.fHits.begin(); it != Event.fHits.end(); ++it)
     for (unsigned int i = 0; i < hits; i++)
@@ -108,11 +119,12 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
     {
       std::cout << "Processing entry: " << ientry << std::endl;
     }
-    if (ientry >= 20000)
+    if (ientry >= 200000)
     {
       break;
     }
   }
+
   f->Write();
   f->Close();
   return 0;
