@@ -58,7 +58,8 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
   uint32_t hits;
   uint32_t event;
-  uint32_t event_time;
+  uint32_t timemsec;
+  uint32_t timesec;
   // time_t EpochTime;
   uint32_t bx;
   uint32_t channel[KMaxHits];
@@ -77,7 +78,8 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   // Define branch variables
   T->Branch("hits", &hits, "hits/I");
   T->Branch("event", &event, "event/I");
-  T->Branch("event_time", &event_time, "event_time/I");
+  T->Branch("timesec", &timesec, "timesec/I");
+  T->Branch("timemsec", &timemsec, "timemsec/I");
   T->Branch("bx", &bx, "bx/I");
   T->Branch("channel", channel, "channel[hits]/I");
   T->Branch("roc", roc, "roc[hits]/I");
@@ -101,7 +103,8 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
     hits = Event.NHits();
     event = Event.EventNumber();
-    event_time = EpochDate + Event.Time();
+    timemsec = Event.Time() % 1000;
+    timesec = EpochDate + Event.Time() / 1000;
     bx = Event.BX();
 
     if (hits > KMaxHits)

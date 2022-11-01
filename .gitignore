@@ -52,6 +52,7 @@ MakeLumiGraphs
 MakeStraightAlignment
 MakeTracks
 MakeTracks_nk
+MakeTracks_hits_nk
 MakeTrimCalFileFake
 MeasureAccidentals
 MeasureAccidentalsBX
@@ -109,6 +110,7 @@ TestBXPattern
 TestDACs
 TestGainCal
 TestTextFileReader
+TrackCount
 TrackDiagnostics
 TrackingEfficiency
 TrackLumiZeroCounting
