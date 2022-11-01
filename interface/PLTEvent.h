@@ -35,6 +35,7 @@ class PLTEvent : public PLTTracking
     void AddHit (PLTHit&);
     void AddHit (PLTHit*);
     void MakeEvent ();
+    void MakeEvent_NK();
     void WriteEventText (std::ofstream&);
     void SetPlaneFiducialRegion (PLTPlane::FiducialRegion);
     void SetPlaneClustering (PLTPlane::Clustering, PLTPlane::FiducialRegion);
@@ -52,6 +53,7 @@ class PLTEvent : public PLTTracking
 
     bool FileIsOpen(void) { return fIsOpen; }
     int GetNextEvent(void);
+    int GetNextRawEvent(uint32_t *buf, uint32_t bufSize);
     int GetNextEvent(uint32_t* buf, uint32_t bufSize);
 
     PLTGainCal* GetGainCal ()
