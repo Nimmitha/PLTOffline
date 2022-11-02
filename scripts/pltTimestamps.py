@@ -33,26 +33,13 @@ def fileTimestamps( year:int, fileType:str ) -> pandas.Series:
 
 def lhcTimestamps( year:str ) -> pandas.DataFrame:
     df = pandas.read_csv('https://delannoy.web.cern.ch/fills.csv')
+    # df = pandas.read_csv('fills_new.csv')
     lhcTS = df[df.oms_stable_beams & (df.oms_start_time>=f'{year}-01-01') & (df.oms_end_time<=f'{year+1}-01-01')][['oms_fill_number','oms_start_time', 'oms_start_stable_beam', 'oms_end_stable_beam', 'oms_end_time']]
     rename_dict = {'oms_fill_number':'fill', 'oms_start_time':'start_time', 'oms_start_stable_beam':'start_stable_beam', 'oms_end_stable_beam':'end_stable_beam', 'oms_end_time':'end_time'}
     lhcTS.rename(columns=rename_dict, inplace=True)
     lhcTS.set_index('fill', inplace=True)
     return lhcTS.apply( pandas.to_datetime, format = '%Y-%m-%dT%H:%M:%SZ' )
-    
-    # return a pandas dataframe with start and end timestamps for all stable beam fills, given a year as an argument
-        # CMSOMS Aggregation API python client [https://gitlab.cern.ch/cmsoms/oms-api-client]
-    """
-    query = omsapi.query("fills")
-    query.filter( 'stable_beams', 'true', 'EQ' ).filter( 'start_time', f'{year}-01-01', 'GE' ).filter( 'end_time', f'{year+1}-01-01', 'LE' )
-    query.per_page = 1000
-    printColor( 'yellow', f'querying CMSOMS fill info for {year}...' )
-    jsonData = query.data().json()['data']
-    filteredData = { fill['id']: [ fill['attributes']['start_time'], fill['attributes']['start_stable_beam'], fill['attributes']['end_stable_beam'], fill['attributes']['end_time'] ] for fill in jsonData }
-        # filter CMSOMS JSON data using a dictionary comprehension with fill number as key and start & end timestamps as values
-    lhcTS = pandas.DataFrame.from_dict( filteredData, orient = 'index', columns = [ 'start_time', 'start_stable_beam', 'end_stable_beam', 'end_time' ] ).rename_axis('fill')
-        # convert filtered dictionary into a pandas dataframe
-    return lhcTS.apply( pandas.to_datetime, format = '%Y-%m-%dT%H:%M:%SZ' ) # convert all timestamps in dataframe from string to pandas datetime objects
-    """
+
 
 def sortTS( seriesTS:pandas.Series, startTS:pandas.Timestamp, endTS:pandas.Timestamp ) -> str:
     # find all timestamps within fill-start (with 10-second tolerance) and fill-end timestamps and return as a string
@@ -81,14 +68,18 @@ def sortTS( seriesTS:pandas.Series, startTS:pandas.Timestamp, endTS:pandas.Times
 def gainCal( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     # insert selected gain calibration file timestamps with "usable" results [https://github.com/cmsplt/PLTOffline/tree/master/GainCal/2020]
         # start with most recent gainCal timestamp and assign to all fills until fill start_stable_beam timestamp < gainCal timestamp. and also constrain to be in the same year
-    def gainCalNextFill( gainCalTS:str ): return pltTS.iloc[ pandas.Index(pltTS['start_stable_beam']).get_loc( gainCalTS.replace('.', ' '), method='backfill' ) ].name
+    def gainCalNextFill( gainCalTS:str ):
+        return pltTS.iloc[ pandas.Index(pltTS['start_stable_beam']).get_loc( gainCalTS.replace('.', ' '), method='backfill' ) ].name
         # find index (fill number) of the most proximate (but still larger) start_stable_beam timestamp to the input gainCalTS
+
     gainCalTS = [ '20150811.120552', '20150923.225334', '20151029.220336', \
                 '20160819.113115', \
                 '20170518.143905', '20170717.224815', '20170731.122306', '20170921.104620', '20171026.164159', \
                 '20180419.131317', '20180430.123258', '20180605.124858', '20180621.160623', '20220803.143004']
     for ts in sorted( gainCalTS, reverse=True):
+        # print(pltTS)
         pltTS.loc[ ( pltTS.start_time.dt.year == int(ts[0:4]) ) & ( pltTS.index >= gainCalNextFill(ts) ), 'gainCal' ] = ts
+
     pltTS.gainCal.fillna( method='backfill', inplace=True ) # propagate empty gainCal entries backwards from last valid entry
     return pltTS
 
@@ -109,60 +100,6 @@ def trackDist( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     pltTS.loc[ pltTS.start_time.dt.year == 2017, 'trackDist' ] = 'TrackDistributions_MagnetOn2017_5718.txt'
     return pltTS
 
-def cmsomsAuth():
-    # verify that the CMSOMS Aggregation API python client [https://gitlab.cern.ch/cmsoms/oms-api-client] is available
-        # if so, import it, and try to authenticate with user certificate, else try kerberos auth
-    import importlib.util
-    if importlib.util.find_spec( 'omsapi' ) is not None:
-        import omsapi
-        omsapi = omsapi.OMSAPI()
-        if os.path.isfile( f'{certFilePath}.pem' ) & os.path.isfile( f'{certFilePath}.key' ):
-            omsapi.auth_cert( f'{certFilePath}.pem', f'{certFilePath}.key' )
-            printColor( 'green', '\nomsapi certificate authentication successful!\n' )
-        else:
-            certInfo()
-            omsapi.auth_krb()
-            printColor( 'green', '\nomsapi kerberos authentication successful!\n' )
-    elif os.path.isfile( f'{venvDir}/bin/activate' ): venvInfo()
-    else: cmsomsInfo()
-    return omsapi
-
-def certInfo():
-    printColor( 'red', f'\nUser certificates not found in "{certFilePath}.pem" & "{certFilePath}.key"')
-    if os.path.isfile( f'{certFilePath}.p12' ):
-        convertCert()
-    else:
-        info  = '\tSetting up a user certificate file is strongly recommended in order to allow unattended authentication\n'
-        info += '\tPlease acquire a *passwordless* user certificate from [https://ca.cern.ch/ca/user/Request.aspx?template=EE2User]\n' # [https://gitlab.cern.ch/cmsoms/oms-api-client#requirements]
-        printColor( 'red', info )
-
-def venvInfo():
-    info  = 'OMSAPI could not be imported\n'
-    info += f'A venv seems to present in "{venvDir}". Please make sure to activate it:\n'
-    info += f'source "{venvDir}/bin/activate"'
-    sys.exit( printColor( 'red', info ) )
-
-def cmsomsInfo():
-    info  = 'OMSAPI is required [https://gitlab.cern.ch/cmsoms/oms-api-client]\n'
-    info += 'A python3 virtual environment is recommended, which can be set up by running:\n'
-    info += '[https://github.com/cmsplt/PLTOffline/blob/master/setup_pltoffline.sh]'
-    sys.exit( printColor( 'red', info ) )
-
-def convertCert():
-    # convert user certificate [https://gitlab.cern.ch/cmsoms/oms-api-client#requirements] [https://linux.web.cern.ch/docs/cernssocookie/#User%20certificates]
-    printColor( 'green', f'\n"{certFilePath}.p12" user certificate/key file must be converted to specific formats\n' )
-    printColor( 'red', 'The user certificate needs to be passwordless, so "Import Password" should be left blank' )
-    stdErr = os.system( f'openssl pkcs12 -clcerts -nokeys -in {certFilePath}.p12 -out {certFilePath}.pem' )
-    printColor( 'red', '"Import Password" should be blank again. A (4-or-more digit) "PEM pass phrase" is required but only used in the next step' )
-    stdErr = os.system( f'openssl pkcs12 -nocerts -in {certFilePath}.p12 -out {certFilePath}.tmp' )
-    printColor( 'red', 'Please repeat the "PEM pass phrase" once more' )
-    stdErr = os.system( f'openssl rsa -in {certFilePath}.tmp -out {certFilePath}.key' )
-    if stdErr == 0:
-        os.system( f'rm -f {certFilePath}.tmp' )
-        os.system( f'chmod 644 {certFilePath}.pem' )
-        os.system( f'chmod 400 {certFilePath}.key' )
-        printColor( 'green', 'User certificate files were configured successfully!' )
-
 def pltTimestamps( year:int ) -> pandas.DataFrame:
     wloopTS = fileTimestamps( year, 'wloop' )
     slinkTS = fileTimestamps( year, 'slink' )
@@ -180,6 +117,8 @@ def main():
     for year in 2015, 2016, 2017, 2018, 2022:
         yearTS = pltTimestamps( year )
         pltTS = pltTS.append( yearTS )
+
+    pltTS = pltTS[~pltTS.index.duplicated(keep='first')]
     pltTS = gainCal( pltTS )
     pltTS = alignment( pltTS )
     pltTS = trackDist( pltTS )
