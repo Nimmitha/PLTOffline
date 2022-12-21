@@ -72,8 +72,10 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
   uint32_t event;
   uint32_t Channel;
+  uint32_t timemsec;
+  uint32_t timesec;
   // float_t event_time;
-  std::string event_time; // https://root-forum.cern.ch/t/saving-an-array-of-character-strings-in-a-root-tree/1522/4
+  // std::string event_time; // https://root-forum.cern.ch/t/saving-an-array-of-character-strings-in-a-root-tree/1522/4
   float_t SlopeX, SlopeY;
   float_t ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2;
   float_t BeamspotX_y, BeamspotX_z, BeamspotY_x, BeamspotY_z, BeamSpotZ_x, BeamSpotZ_y;
@@ -90,8 +92,10 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   // Define branch variables
   T->Branch("event", &event, "event/I");
   T->Branch("track", &track, "track/I");
+  T->Branch("timesec", &timesec, "timesec/I");
+  T->Branch("timemsec", &timemsec, "timemsec/I");
   // T->Branch("event_time", &event_time, "event_time/F");
-  T->Branch("event_time", &event_time);
+  // T->Branch("event_time", &event_time);
   T->Branch("Channel", &Channel, "Channel/I");
   T->Branch("SlopeX", &SlopeX, "SlopeX/F");
   T->Branch("SlopeY", &SlopeY, "SlopeY/F");
@@ -149,6 +153,9 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
     }
 
     prev_time = Event.ReadableTime();
+    // timemsec = Event.Time() % 1000;
+    // timesec = EpochDate + Event.Time() / 1000;
+
     // msecs = Event.Time()%1000;
     // EpochTime = EpochDate + Event.Time()/1000;
     // tm *ltm = localtime(&EpochTime);
@@ -185,15 +192,18 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
         if (haveTime == false)
         {
           // https://www.tutorialspoint.com/cplusplus/cpp_date_time.htm
-          msecs = Event.Time() % 1000;
-          EpochTime = EpochDate + Event.Time() / 1000;
-          tm *ltm = localtime(&EpochTime);
+          // msecs = Event.Time() % 1000;
+          // EpochTime = EpochDate + Event.Time() / 1000;
+          // tm *ltm = localtime(&EpochTime);
 
           // https://cplusplus.com/reference/ctime/strftime/
-          strftime(buffer, 24, "%F %T", ltm);
-          event_time = buffer;
-          event_time = event_time + "." + std::to_string(msecs);
+          // strftime(buffer, 24, "%F %T", ltm);
+          // event_time = buffer;
+          // event_time = event_time + "." + std::to_string(msecs);
 
+          // prev_time = Event.ReadableTime();
+          timemsec = Event.Time() % 1000;
+          timesec = EpochDate + Event.Time() / 1000;
           // std::cout << "Processing entry: " << event_time << std::endl;
           haveTime = true;
         }

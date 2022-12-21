@@ -24,14 +24,18 @@ void fix_track_numbers(std::string FileName){
     Int_t track;
     Int_t event;
     Int_t Channel;
-    std::string event_time;
+    // std::string event_time;
+    Int_t timesec;
+    Int_t timemsec;
     float_t SlopeX, SlopeY;
     float_t ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2;
     float_t BeamspotX_y, BeamspotX_z, BeamspotY_x, BeamspotY_z,BeamSpotZ_x, BeamSpotZ_y;
 
     t_old->SetBranchAddress("event", &event);
     t_old->SetBranchAddress("track", &track);
-    t_old->SetBranchAddress("event_time", &event_time);
+    // t_old->SetBranchAddress("event_time", &event_time);
+    t_old->SetBranchAddress("timesec", &timesec);
+    t_old->SetBranchAddress("timemsec", &timemsec);
     t_old->SetBranchAddress("Channel", &Channel);
     t_old->SetBranchAddress("SlopeX", &SlopeX);
     t_old->SetBranchAddress("SlopeY", &SlopeY);
@@ -57,7 +61,9 @@ void fix_track_numbers(std::string FileName){
 
     T.Branch("event", &event, "event/I");
     T.Branch("track", &track, "track/I");
-    T.Branch("event_time", &event_time);
+    // T.Branch("event_time", &event_time);
+    T.Branch("timesec", &timesec, "timesec/I");
+    T.Branch("timemsec", &timemsec, "timemsec/I");
     T.Branch("Channel", &Channel, "Channel/I");
     T.Branch("SlopeX", &SlopeX, "SlopeX/F");
     T.Branch("SlopeY", &SlopeY, "SlopeY/F");
