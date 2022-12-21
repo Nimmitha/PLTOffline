@@ -100,7 +100,7 @@ def getTracks(pltTS):
             print("Only checked for 2022. Check before running")
             continue
 
-        arg_MakeTrack = ["", gainCal, alignment, str(fill), StartTime, EndTime]
+        arg_MakeTrack = ["", gainCal, alignment, str(fill), StartTime, EndTime, ""]
 
         if nslink_files >= 2:
             print("Slink is split into", nslink_files, "files.")
@@ -129,7 +129,7 @@ def getTracks(pltTS):
 
                 arg_MakeTrack[4] = str(AStartTime)
                 arg_MakeTrack[5] = str(AEndTime)
-                arg_MakeTrack.append(str(dateToSend.strftime("%s")))
+                arg_MakeTrack[6] = str(dateToSend.strftime("%s"))
 
                 runMakeTrack(arg_MakeTrack)
             combine_root_files(fill, str(AStartTime),
@@ -164,7 +164,7 @@ def getTracks(pltTS):
 
             arg_MakeTrack[4] = str(AStartTime)
             arg_MakeTrack[5] = str(AEndTime)
-            arg_MakeTrack.append(str(dateToSend.strftime("%s"))) # https://www.geeksforgeeks.org/convert-python-datetime-to-epoch/
+            arg_MakeTrack[6] = str(dateToSend.strftime("%s")) # https://www.geeksforgeeks.org/convert-python-datetime-to-epoch/
 
             runMakeTrack(arg_MakeTrack)
 
