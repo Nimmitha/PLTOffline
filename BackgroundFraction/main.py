@@ -147,11 +147,13 @@ def run_fit_scripts(df_row):
     print("\n Running fit script ", end='')
     fill = str(df_row.index[0])
 
-    hh, mm=df_row.iat[0, 0].strftime("%H:%M").split(":")
-    StartTime=str(3600*int(hh) + 60*int(mm))
+    StartTime = str( int(df_row.iat[0, 0].strftime("%s")) + 0*3600 )
+    EndTime = str( int(df_row.iat[0, 1].strftime("%s")) + 0*3600 )
+    # hh, mm=df_row.iat[0, 0].strftime("%H:%M").split(":")
+    # StartTime=str(3600*int(hh) + 60*int(mm))
 
-    hh, mm=df_row.iat[0, 1].strftime("%H:%M").split(":")
-    EndTime=str(3600*int(hh) + 60*int(mm))
+    # hh, mm=df_row.iat[0, 1].strftime("%H:%M").split(":")
+    # EndTime=str(3600*int(hh) + 60*int(mm))
 
     step=str(df_row.iat[0, 2])
 
@@ -178,7 +180,8 @@ def get_inst_luminosity(df_row):
     hh, mm=df_row.iat[0, 1].strftime("%H:%M").split(":")
     EndTime=str(3600*int(hh) + 60*int(mm))
 
-    fName=str(fill) + "_" + StartTime + "_" + EndTime
+    # fName=str(fill) + "_" + StartTime + "_" + EndTime
+    fName=str(fill)
 
     print("for Fill", fill)
 
@@ -219,9 +222,11 @@ def get_inst_luminosity(df_row):
             df_lumi["time"] < t2)]["del"].mean()
         mean_sbil = mean_lumi/collidingBunches
 
-        t1_save = int(t1.strftime("%H"))*3600 + int(t1.strftime("%M"))*60
+        t1_save = t1.strftime('%s')
+        # int(t1.strftime("%H"))*3600 + int(t1.strftime("%M"))*60
 
-        t2_save = int(t2.strftime("%H"))*3600 + int(t2.strftime("%M"))*60 - 1
+        t2_save = int(t2.strftime('%s')) - 1
+        # int(t2.strftime("%H"))*3600 + int(t2.strftime("%M"))*60 - 1
 
         lineToWrite = fill + "," + str(i) + "," + str(t1_save) + "," + str(
             t2_save) + "," + str(mean_lumi) + "," + str(mean_sbil) + "\n"
@@ -231,7 +236,8 @@ def get_inst_luminosity(df_row):
 def combineLogs(df_row):
     def getCB(fill):
         BC = {4958: 1453, 4979: 2028, 5038: 1884,
-              5106: 2064, 5401: 2208, 5406: 2208, 5424: 2208, 8033: 974, 8057: 974, 8078: 1538}
+              5106: 2064, 5401: 2208, 5406: 2208, 5424: 2208, 8033: 974, 8057: 974, 8078: 1538,
+              8210: 140}
         return BC[fill]
 
     print("\n Combining Log files ", end='')
@@ -243,7 +249,8 @@ def combineLogs(df_row):
     hh, mm=df_row.iat[0, 1].strftime("%H:%M").split(":")
     EndTime=str(3600*int(hh) + 60*int(mm))
 
-    fName=str(fill) + "_" + StartTime + "_" + EndTime
+    # fName=str(fill) + "_" + StartTime + "_" + EndTime
+    fName=str(fill)
     lumiLogPath="logs/" + fName + "Lumi.csv"
     fLogPath="logs/" + fName + "F.csv"
     resultPath="results/" + fName + ".csv"
@@ -253,11 +260,16 @@ def combineLogs(df_row):
     lumi_df=pd.read_csv(lumiLogPath, index_col="h")
     f_df=pd.read_csv(fLogPath, index_col="h")
 
+    # print(lumi_df)
+    # print(f_df)
+
     if lumi_df.shape[0] != f_df.shape[0]:
         print("Lengths does not match")
         return
 
     result = pd.merge(lumi_df, f_df)
+    # print(result)
+    # return
     result["fSlopeY(%)"] = result.apply(lambda x: x.bkg_frac*100, axis=1)
     result["fSlopeY_e(%)"] = result.apply(
         lambda x: x.bkg_frac_e*100, axis=1)
@@ -289,20 +301,19 @@ def parseDate_fillSeg(x):
 
 def main():
     pltTS = pltTimestamps()
-    print(pltTS)
+    # print(pltTS)
 
-    df = pd.read_csv('fill_segments.csv', index_col="fill")
-    create_fill_segments_csv(pltTS, df)
+    # df = pd.read_csv('fill_segments.csv', index_col="fill")
+    # create_fill_segments_csv(pltTS, df)
     df = pd.read_csv('fill_segments.csv', index_col="fill", parse_dates=["start", "end"], date_parser=parseDate_fillSeg)
-    print(df)
-    create_maketrack_fills_csv(df)
+    # create_maketrack_fills_csv(df)
     
-    getTracks(pltTS)
-    
+    # getTracks(pltTS)
+    # print(df)
     for i in range(df.shape[0]):
         print("\nWorking on row", i)
-        run_fit_scripts(df.iloc[[i]])
-        get_inst_luminosity(df.iloc[[i]])
+        # run_fit_scripts(df.iloc[[i]])
+        # get_inst_luminosity(df.iloc[[i]])
         combineLogs(df.iloc[[i]])
 
 

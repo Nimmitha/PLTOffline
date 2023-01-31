@@ -80,7 +80,7 @@ def getTracks(pltTS):
 
         if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
             print("ROOT file", rootfName, "already exists. Skipping..")
-            # return
+            return
 
         print("ROOT file not found. Creating", rootfName)
 
@@ -172,7 +172,7 @@ def getTracks(pltTS):
 def main():
     pltTS = pltTimestamps()
 
-    start_fill, end_fill = 8112, 8220 #8149, 8149
+    start_fill, end_fill = 8210, 8300 #8149, 8149
     # start_fill, end_fill = 8121, 8121  # 8149, 8149
     exclude_fill = [8178]
 

@@ -21,7 +21,8 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
     std::string FILE_PATH = "/home/nkarunar/root_files/";
     std::string IMG_PATH = "plots/";
 
-    std::string fName = FillNumber + "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
+    // std::string fName = FillNumber + "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
+    std::string fName = FillNumber;
     std::string fPathString = FILE_PATH  + fName + ".root";
     const char *fPath = &fPathString[0];
 
@@ -42,12 +43,12 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
     RooRealVar ResidualY_ROC2("ResidualY_ROC2", "ResidualY_ROC2", -1, 1);
     RooRealVar BeamSpotZ_x("BeamSpotZ_x", "BeamSpotZ_x", -20, 20);
     RooRealVar BeamSpotZ_y("BeamSpotZ_y", "BeamSpotZ_y", -20, 20);
-    RooRealVar event_time("event_time", "event_time", StartTime, EndTime - 1);
+    RooRealVar timesec("timesec", "timesec", StartTime, EndTime - 1);
     //RooRealVar Channel("Channel", "Channel", 12, 21);
 
     std::cout << "Reading range [" << StartTime << ", " << EndTime << ")" << std::endl;
 
-    auto variables = new RooArgSet(event_time, SlopeY, ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2);
+    auto variables = new RooArgSet(timesec, SlopeY, ResidualX_ROC0, ResidualX_ROC1, ResidualX_ROC2, ResidualY_ROC0, ResidualY_ROC1, ResidualY_ROC2);
     variables->add(BeamSpotZ_x);
     variables->add(BeamSpotZ_y);
 
@@ -87,7 +88,7 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
         t2 = t1 + step - 1;
         std::cout << "Processing " << t1 << "-" << t2 << std::endl;
 
-        event_time.setRange("time_range", t1, t2);
+        timesec.setRange("time_range", t1, t2);
         RooAbsData *data_timeReduced = dataRead.reduce(CutRange("time_range"), Name("data_timeReduced"));
         ntracks_time = data_timeReduced->sumEntries();
         std::cout << "Tracks in the selected range: " << ntracks_time << std::endl;
@@ -106,13 +107,13 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
         }
 
         //Define Gaussian
-        RooRealVar m0("m0", "mean 0", 0.026902, 0.02, 0.03);
-        RooRealVar m1("m1", "mean 1", 0.02607);
-        RooRealVar m2("m2", "mean 2", 0.030);
+        RooRealVar m0("m0", "mean 0", 0.026965, 0.02, 0.03);
+        RooRealVar m1("m1", "mean 1", 0.02618);
+        RooRealVar m2("m2", "mean 2", 0.0295);
 
-        RooRealVar s0("s0", "sigma 0", 0.001160, 0.0005, 0.0017);
+        RooRealVar s0("s0", "sigma 0", 0.001275, 0.0005, 0.0017);
         RooRealVar s1("s1", "sigma 1", 0.0036);
-        RooRealVar s2("s2", "sigma 2", 0.0150);
+        RooRealVar s2("s2", "sigma 2", 0.0151);
 
         RooGaussian g0("g0", "gaussian PDF 0", SlopeY, m0, s0);
         RooGaussian g1("g1", "gaussian PDF 1", SlopeY, m1, s1);
@@ -122,8 +123,8 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
         TH1 *histZ_y = data_timeReduced->createHistogram("BeamSpot Y", BeamSpotZ_y, Binning(50, -10, 10));
 
         // Define Signal
-        RooRealVar frac0("frac0", "fraction 0", 0.798);
-        RooRealVar frac1("frac1", "fraction 1", 0.135);
+        RooRealVar frac0("frac0", "fraction 0", 0.804);
+        RooRealVar frac1("frac1", "fraction 1", 0.124);
         RooAddPdf sig("sig", "g0+g1+g2", RooArgList(g0, g1, g2), RooArgList(frac0, frac1));
 
         // Define background
@@ -180,8 +181,24 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
 
         pt->AddText(Form("Tracks = %i", ntracks_time));
         
-        t1_data = ((RooRealVar *)(data_timeReduced->get(0)->find("event_time")))->getVal();
-        t2_data = ((RooRealVar *)(data_timeReduced->get(ntracks_time - 1)->find("event_time")))->getVal();
+        // t1_data = ((RooRealVar *)(data_timeReduced->get(0)->find("timesec")))->getVal();
+        // t2_data = ((RooRealVar *)(data_timeReduced->get(ntracks_time - 1)->find("timesec")))->getVal();
+
+/*
+#include <iostream>
+#include <ctime>
+
+int main() {
+    time_t epoch_time = 1610612800; // Example epoch time
+    struct tm *time_info;
+    time_info = gmtime(&epoch_time);
+    std::cout << "Hours: " << time_info->tm_hour << std::endl;
+    return 0;
+}
+*/
+
+        t1_data = t1;
+        t2_data = t2;
 
         string_buffer.str(std::string());
         hr = t1_data / 3600;
@@ -199,7 +216,7 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
 
         t2_data_s = string_buffer.str();
 
-        pt->AddText(Form("event_time =  %s - %s", &t1_data_s[0], &t2_data_s[0]));
+        pt->AddText(Form("timesec =  %s - %s", &t1_data_s[0], &t2_data_s[0]));
 
         frame1->Draw();
         c_box->SaveAs(fFile_box);

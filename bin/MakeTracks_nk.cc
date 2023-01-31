@@ -139,7 +139,7 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   std::cout << "\nLooping through events.\n\n";
   for (int ientry = 0; Event.GetNextEvent() >= 0; ++ientry)
   {
-    if (ientry % 1000000 == 0)
+    if (ientry % 5000000 == 0)
     {
       std::cout << "Entry: " << ientry << "\t" << Event.ReadableTime() << std::endl;
     }
