@@ -9,7 +9,12 @@ from nf import post_to_slack
 # PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
 # PLT_PATH = "/home/nkarunar/PLTOffline/"
 PLT_PATH = os.getcwd().rsplit("/", 1)[0]
-FILE_PATH = "/home/nkarunar/root_files/"
+
+# FILE_PATH = "/home/nkarunar/root_files/"
+FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
+
+SLINK_PATH = "/afs/cern.ch/user/n/nkarunar/mnts/brildpg/plt/"
+
 FILE_EXT = ".root"
 
 print("Working from:", PLT_PATH)
@@ -80,7 +85,7 @@ def getTracks(pltTS):
 
         if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
             print("ROOT file", rootfName, "already exists. Skipping..")
-            return
+            continue
 
         print("ROOT file not found. Creating", rootfName)
 
@@ -108,7 +113,7 @@ def getTracks(pltTS):
             for i, slink_file in enumerate(slink_files):
                 arg_MakeTrack[3] = str(fill) + "_" + str(i)
                 arg_MakeTrack[0] = os.path.join(
-                    '/localdata', year,  f'SLINK/Slink_{slink_file}.dat')
+                    SLINK_PATH, year,  f'SLINK/Slink_{slink_file}.dat')
 
                 slink_date = pd.to_datetime(slink_file, format='%Y%m%d.%H%M%S')
                 startTime_adjust = int(
@@ -138,7 +143,7 @@ def getTracks(pltTS):
         else:
             # run once
             arg_MakeTrack[0] = os.path.join(
-                '/localdata', year,  f'SLINK/Slink_{slink_files[0]}.dat')
+                SLINK_PATH , year,  f'SLINK/Slink_{slink_files[0]}.dat')
 
             slink_date = pd.to_datetime(slink_files[0], format='%Y%m%d.%H%M%S')
             startTime_adjust = int(
