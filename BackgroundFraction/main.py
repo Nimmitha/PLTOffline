@@ -1,8 +1,10 @@
 import math
 import csv
 import os
+import pathlib
 import sys
 import subprocess
+from glob import glob
 from matplotlib.markers import MarkerStyle
 from numpy.lib.type_check import imag
 import pandas as pd
@@ -13,9 +15,12 @@ from pandas.tseries.offsets import Minute
 sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
 from nf import post_to_slack
 
-PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
+PLT_PATH = os.getcwd().rsplit("/", 1)[0]
+# PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
+
 # FILE_PATH = "/home/nkarunar/root_files/"
 FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
+
 FILE_EXT = ".root"
 
 
@@ -59,106 +64,12 @@ def create_maketrack_fills_csv(df):
     print("_maketrack_fills.csv created.")
 
 
-def getTracks(pltTS):
-
-    def runMakeTrack(arg_MakeTrack):
-        cmd_MakeTrack = [PLT_PATH + "MakeTracks_nk"] + arg_MakeTrack
-
-        print("\n"+"*"*150)
-        print("Running : ", cmd_MakeTrack)
-        print("*"*150)
-
-        x = subprocess.run(cmd_MakeTrack)
-        print(x)
-
-    def combine_root_files(fill, StartTime, EndTime, nFiles):
-        print("   Combining", nFiles, "root files.")
-        rootfName = str(fill) + "_" + StartTime + "_" + EndTime
-        cmd_hadd = ["hadd", "-f"] + [rootfName + "_raw" + FILE_EXT]
-
-        for i in range(nFiles):
-            cmd_hadd += [str(fill) + "_" + str(i) + "_" +
-                         StartTime + "_" + EndTime + FILE_EXT]
-
-        x = subprocess.run(cmd_hadd, cwd=FILE_PATH)
-        print(x)
-        run_fix_track_numbers(rootfName)
-
-    def run_fix_track_numbers(rootfName):
-        print("   Processing track numbers in file", rootfName)
-        cmd_fixTrackNo = ["root", "-b", "-l", "-q"] + ["fix_track_numbers.C(\"" + rootfName + "\")"]
-
-        x = subprocess.run(cmd_fixTrackNo)
-        print(x)
-
-    print("\nRunning MakeTrack on the list of fills.")
-    with open("_maketrack_fills.csv", newline='') as csvfile:
-        csvreader = csv.reader(csvfile, delimiter=",")
-
-        for row in csvreader:
-            fill = int(row[0])
-            print(" Working on", fill)
-
-            hh, mm=[int(x) for x in row[1].split(" ")[1].split(":")[0:2]]
-            StartTime=str(hh*3600 + mm*60)
-
-            hh, mm=[int(x) for x in row[2].split(" ")[1].split(":")[0:2]]
-            EndTime=str(hh*3600 + mm*60)
-
-            rootfName=str(fill) + "_" + StartTime + "_" + EndTime
-
-            print("  Checking for file:", rootfName)
-            if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
-                print("  ROOT file", rootfName, "already exists. Skipping..")
-                continue
-            print("  ROOT file not found. Creating", rootfName)
-            
-            Slink = pltTS.loc[fill, 'slinkTS'].split()
-
-            if Slink == []:
-                print("Could not find slink file name")
-                exit(1)
-
-            year = Slink[0][:4]
-
-            gainCal = PLT_PATH + "GainCal/2020/GainCalFits_" + pltTS.loc[fill, 'gainCal'] + ".dat"
-            alignment = PLT_PATH + "ALIGNMENT/" + pltTS.loc[fill, 'alignment']
-
-            arg_MakeTrack = ["", gainCal, alignment,
-                             str(fill), StartTime, EndTime]
-
-            print("   Slink selected:", Slink)
-            nFiles = len(Slink)
-
-            if nFiles >= 2:
-                print("   Slink is split into", nFiles, "files.")
-                # run for each file
-                for i, file_name in enumerate(Slink):
-                    arg_MakeTrack[3] = str(fill) + "_" + str(i)
-                    arg_MakeTrack[0] = "/localdata/"+year + \
-                        "/SLINK/Slink_" + file_name + ".dat"
-                    runMakeTrack(arg_MakeTrack)
-
-                combine_root_files(fill, StartTime, EndTime, nFiles)
-
-            else:
-                # run once
-                arg_MakeTrack[0] = "/localdata/"+year + \
-                    "/SLINK/Slink_" + Slink[0] + ".dat"
-                runMakeTrack(arg_MakeTrack)
-
-
 def run_fit_scripts(df_row):
     print("\n Running fit script ", end='')
     fill = str(df_row.index[0])
 
     StartTime = str( int(df_row.iat[0, 0].strftime("%s")) + 0*3600 )
     EndTime = str( int(df_row.iat[0, 1].strftime("%s")) + 0*3600 )
-    # hh, mm=df_row.iat[0, 0].strftime("%H:%M").split(":")
-    # StartTime=str(3600*int(hh) + 60*int(mm))
-
-    # hh, mm=df_row.iat[0, 1].strftime("%H:%M").split(":")
-    # EndTime=str(3600*int(hh) + 60*int(mm))
 
     step=str(df_row.iat[0, 2])
 
@@ -240,12 +151,19 @@ def get_inst_luminosity(df_row):
 
 def combineLogs(df_row):
     def getCB(fill):
-        BC = {4958: 1453, 4979: 2028, 5038: 1884,
-              5106: 2064, 5401: 2208, 5406: 2208, 5424: 2208, 8033: 974, 8057: 974, 8078: 1538,
-              8210: 140, 8211: 146, 8212: 578, 8214: 1154, 8216: 1154, 8220: 2448, 8221: 2448,
-              8222: 2448, 8223: 2448, 8225: 2448, 8226: 8, 8228: 2448, 8230: 2448, 8232: 8, 8233: 205,
-              8236: 2448, 8238: 2448, 8245: 2448}
-        return BC[fill]
+        fill_info = pd.read_csv(os.path.join(PLT_PATH, 'fill_info.csv'), index_col='oms_fill_number')
+        fill_info = fill_info[fill_info.oms_stable_beams==True]
+
+        CB = int(fill_info.loc[fill, 'oms_bunches_colliding'])
+        print(f"Using CB = {CB}")
+        return CB
+
+        # BC = {4958: 1453, 4979: 2028, 5038: 1884,
+        #       5106: 2064, 5401: 2208, 5406: 2208, 5424: 2208, 8033: 974, 8057: 974, 8078: 1538,
+        #       8210: 140, 8211: 146, 8212: 578, 8214: 1154, 8216: 1154, 8220: 2448, 8221: 2448,
+        #       8222: 2448, 8223: 2448, 8225: 2448, 8226: 8, 8228: 2448, 8230: 2448, 8232: 8, 8233: 205,
+        #       8236: 2448, 8238: 2448, 8245: 2448}
+        # return BC[fill]
 
     print("\n Combining Log files ", end='')
     fill = str(df_row.index[0])
@@ -267,16 +185,11 @@ def combineLogs(df_row):
     lumi_df=pd.read_csv(lumiLogPath, index_col="h")
     f_df=pd.read_csv(fLogPath, index_col="h")
 
-    # print(lumi_df)
-    # print(f_df)
-
     if lumi_df.shape[0] != f_df.shape[0]:
         print("Lengths does not match")
         return
 
     result = pd.merge(lumi_df, f_df)
-    # print(result)
-    # return
     result["fSlopeY(%)"] = result.apply(lambda x: x.bkg_frac*100, axis=1)
     result["fSlopeY_e(%)"] = result.apply(
         lambda x: x.bkg_frac_e*100, axis=1)
@@ -305,27 +218,44 @@ def pltTimestamps():
 def parseDate_fillSeg(x):
     return pd.to_datetime(x, format='%Y-%m-%d %H:%M')
 
+def create_all_missing():
+    result_files = glob(os.path.join(PLT_PATH, 'BackgroundFraction/results', '????.csv'))
+    result_files = [int(pathlib.Path(file).stem) for file in result_files]
+    # print(result_files)
+    track_files = glob(os.path.join(FILE_PATH, '????.root'))
+    track_files = [int(pathlib.Path(file).stem) for file in track_files]
+    # print(track_files)
+    excluded = [8178, 8225, 8381, 8385]
+    missing_results = [fill for fill in track_files if fill not in result_files and fill not in excluded]
+    print(missing_results)
+    post_to_slack(message_text=f'Bkg will work on: {missing_results}')
+
+
+    df = pd.DataFrame(columns=['start', 'end', 'duration'], index=missing_results)
+    df.index.name = 'fill'
+    df.duration = 300
+    df.to_csv("fill_segments.csv", encoding='utf-8', header=True)
+
 
 def main():
     pltTS = pltTimestamps()
-    # print(pltTS)
+
+    create_all_missing()
 
     df = pd.read_csv('fill_segments.csv', index_col="fill")
     create_fill_segments_csv(pltTS, df)
     df = pd.read_csv('fill_segments.csv', index_col="fill", parse_dates=["start", "end"], date_parser=parseDate_fillSeg)
     create_maketrack_fills_csv(df)
-    
-    # getTracks(pltTS)
-    # print(df)
+
     for i in range(df.shape[0]):
-        print("\nWorking on row", i)
+        print("\nWorking on row", df.index[i])
         post_to_slack(message_text=f"Begin bkg calc {df.index[i]}")
 
         run_fit_scripts(df.iloc[[i]])
         get_inst_luminosity(df.iloc[[i]])
         combineLogs(df.iloc[[i]])
         
-        print("\nDone row", i)
+        print("\nDone row", df.index[i])
         post_to_slack(message_text=f"Done bkg calc {df.index[i]}")
 
 
