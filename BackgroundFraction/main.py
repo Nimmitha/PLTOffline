@@ -1,6 +1,7 @@
 import math
 import csv
 import os
+import sys
 import subprocess
 from matplotlib.markers import MarkerStyle
 from numpy.lib.type_check import imag
@@ -9,8 +10,12 @@ import matplotlib.pyplot as plt
 from pandas.io.parsers import read_csv
 from pandas.tseries.offsets import Minute
 
+sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
+from nf import post_to_slack
+
 PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
-FILE_PATH = "/home/nkarunar/root_files/"
+# FILE_PATH = "/home/nkarunar/root_files/"
+FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
 FILE_EXT = ".root"
 
 
@@ -237,7 +242,9 @@ def combineLogs(df_row):
     def getCB(fill):
         BC = {4958: 1453, 4979: 2028, 5038: 1884,
               5106: 2064, 5401: 2208, 5406: 2208, 5424: 2208, 8033: 974, 8057: 974, 8078: 1538,
-              8210: 140}
+              8210: 140, 8211: 146, 8212: 578, 8214: 1154, 8216: 1154, 8220: 2448, 8221: 2448,
+              8222: 2448, 8223: 2448, 8225: 2448, 8226: 8, 8228: 2448, 8230: 2448, 8232: 8, 8233: 205,
+              8236: 2448, 8238: 2448, 8245: 2448}
         return BC[fill]
 
     print("\n Combining Log files ", end='')
@@ -303,18 +310,23 @@ def main():
     pltTS = pltTimestamps()
     # print(pltTS)
 
-    # df = pd.read_csv('fill_segments.csv', index_col="fill")
-    # create_fill_segments_csv(pltTS, df)
+    df = pd.read_csv('fill_segments.csv', index_col="fill")
+    create_fill_segments_csv(pltTS, df)
     df = pd.read_csv('fill_segments.csv', index_col="fill", parse_dates=["start", "end"], date_parser=parseDate_fillSeg)
-    # create_maketrack_fills_csv(df)
+    create_maketrack_fills_csv(df)
     
     # getTracks(pltTS)
     # print(df)
     for i in range(df.shape[0]):
         print("\nWorking on row", i)
-        # run_fit_scripts(df.iloc[[i]])
-        # get_inst_luminosity(df.iloc[[i]])
+        post_to_slack(message_text=f"Begin bkg calc {df.index[i]}")
+
+        run_fit_scripts(df.iloc[[i]])
+        get_inst_luminosity(df.iloc[[i]])
         combineLogs(df.iloc[[i]])
+        
+        print("\nDone row", i)
+        post_to_slack(message_text=f"Done bkg calc {df.index[i]}")
 
 
 if __name__ == main():
