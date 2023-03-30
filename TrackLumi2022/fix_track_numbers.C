@@ -1,6 +1,7 @@
 void fix_track_numbers(std::string FileName){
 
-    std::string FILE_PATH = "/home/nkarunar/root_files/";
+    // std::string FILE_PATH = "/home/nkarunar/root_files/";
+    std::string FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/";
 
     std::string tNameString = "Track parameters for fill " + FileName;
     char *tName = &tNameString[0];

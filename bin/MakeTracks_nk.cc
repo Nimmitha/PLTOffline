@@ -67,7 +67,10 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
   // Define file name, file path and Title of the TTree
   std::string fName = FillNumber; //+ "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
-  std::string fPathString = "/home/nkarunar/root_files/" + fName + ".root";
+  // std::string fPathString = "/home/nkarunar/root_files/" + fName + ".root";
+  std::string fPathString = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/" + fName + ".root";
+
+
   std::string tNameString = "Track parameters for fill " + fName;
 
   uint32_t event;
@@ -142,6 +145,8 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
     if (ientry % 5000000 == 0)
     {
       std::cout << "Entry: " << ientry << "\t" << Event.ReadableTime() << std::endl;
+      
+      // if (ientry > 1) break;
     }
 
     if (Event.Time() < StartTime * 1000)
@@ -235,6 +240,8 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
   std::ofstream myfile;
   myfile.open("logs/MakeTracksLog.txt", std::ios::app);
   myfile << FillNumber << " " << track << " " << getTime(StartTime * 1000) << " " << prev_time << "\n";
+
+  myfile.close();
 
   f->Write();
   f->Close();
