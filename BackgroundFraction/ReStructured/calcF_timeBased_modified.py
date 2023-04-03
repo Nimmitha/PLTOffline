@@ -1,7 +1,6 @@
 import time
 # import uproot4 as uproot
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
+
 import mplhep as hep
 hep.style.use("CMS")
 import uproot
@@ -10,7 +9,7 @@ import pandas as pd
 import ROOT
 from ROOT import RooFit, RooArgSet, RooArgList, RooGaussian, RooRealVar, RooAddPdf, TCanvas
 
-from plotting import plot_table
+from plotting import plot_table, plot_box
 
 Fill = "8236"
 FILE_PATH = "/mnt/d/CernBox/data/temp_access/"
@@ -27,12 +26,13 @@ step = 300
 channel = -1    # -1 for all channels
 
 # open file using uproot
-f = uproot.open(fPath)
-t = f["T"]
+file = uproot.open(fPath)
+tree = file["T"]
 
-def get_boundary_indices(t):
+
+def get_boundary_indices(tree):
     """Get indices of the first and last entry in each 5 minute interval"""
-    data = t.arrays(["timesec"], library="pd")
+    data = tree.arrays(["timesec"], library="pd")
     data = data[(data.timesec >= startTime) & (data.timesec <= endTime)]
     data["timestamp"] = pd.to_datetime(data.timesec.map(str), unit='s') + pd.Timedelta(seconds=150)
     data['round'] = data.timestamp.dt.round('5min')
@@ -41,12 +41,12 @@ def get_boundary_indices(t):
     return indices
 
 
-indices = get_boundary_indices(t)
+indices = get_boundary_indices(tree)
 
 # total_data = 0
 # for i in range(len(indices)-1):
 #     # print(indices[i], indices[i+1])
-#     new_data = t.arrays("timesec", entry_start=indices[i], entry_stop=indices[i+1], library="np")['timesec']
+#     new_data = tree.arrays("timesec", entry_start=indices[i], entry_stop=indices[i+1], library="np")['timesec']
 #     total_data += len(new_data)
 #     print(new_data[0], new_data[-1])
 # print(total_data)
@@ -106,7 +106,7 @@ for h in range(len(indices) - 1):
                  'BeamspotY_x', 'BeamspotY_z',
                  'BeamSpotZ_x', 'BeamSpotZ_y']
 
-    subselection = t.arrays(variables, entry_start=indices[h], entry_stop=indices[h + 1], library="np")
+    subselection = tree.arrays(variables, entry_start=indices[h], entry_stop=indices[h + 1], library="np")
     table = pd.DataFrame(subselection)
 
     print("Number of entries in this:", len(subselection['SlopeY']))
@@ -133,42 +133,9 @@ for h in range(len(indices) - 1):
     model.plotOn(frame1, RooFit.Components(RooArgSet(sig)), RooFit.LineColor(ROOT.kGreen))
     model.plotOn(frame1, RooFit.Components(RooArgSet(bkg)), RooFit.LineColor(ROOT.kRed))
     model.plotOn(frame1, RooFit.Name("model"))
-
+    
     # Calculate chi2
     chi2 = frame1.chiSquare("model", "dataSet", 5)
-    rh = frame1.findObject("dataSet")
-    N = rh.GetN()
-    for i in range(N):
-        x = rh.GetPointX(i)
-        y = rh.GetPointY(i)
-        if y == 0.0:
-            rh.SetPointError(i, 0., 0., 0., 0.)
-
-    # startTime new canvas (box)
-    c_box = TCanvas("c_box", "c_box", 800, 700)
-    c_box.GetPad(0).SetLogy()
-    frame1.SetMaximum(1e6)
-    frame1.SetMinimum(0.2)
-    frame1.GetYaxis().SetTitleOffset(1.2)
-    frame1.GetYaxis().SetTitleSize(0.04)
-
-    # ParamBox
-    model.paramOn(frame1, RooFit.Layout(0.7), RooFit.Format(("NEU"), RooFit.AutoPrecision(1)))
-    frame1.getAttText().SetTextSize(0.02)
-    pt = frame1.findObject("model_paramBox")
-    pt.AddText(ROOT.Form(f"Chi2/ndof =  {chi2:.2f}"))
-    pt.AddText(ROOT.Form(f"Tracks =  {ntracks_time}"))
-
-    t1_string = time.strftime('%H:%M:%S', time.localtime(t1))
-    t2_string = time.strftime('%H:%M:%S', time.localtime(t2))
-
-    pt.AddText(f'timesec = {t1_string} - {t2_string}')
-    frame1.Draw()
-    c_box.SaveAs(fFile_box)
-    # frame1.Clear()
-    # c_box.Clear()
-    del c_box
-    del frame1
 
     ntracks_resi = 0
 
@@ -186,6 +153,7 @@ for h in range(len(indices) - 1):
                chi2]
 
     log_df.loc[len(log_df)] = new_row
+    plot_box(model, frame1, chi2, ntracks_time, t1_string, t2_string, h, Fill)
     plot_table(table, h)
 
 log_df.to_csv(fLogPath, index=False, header=False, mode='a')
