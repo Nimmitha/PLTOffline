@@ -10,6 +10,7 @@ __pycache__/
 BackgroundFraction/plots/*
 BackgroundFraction/logs/*
 BackgroundFraction/temp/*
+BackgroundFraction/ReStructured/plots/*
 test/*
 lib/*
 data
