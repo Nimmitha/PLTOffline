@@ -44,13 +44,14 @@ def plot_box(model, frame1, chi2, ntracks_time, t1_string, t2_string, h, Fill):
 def plot_table(df, h):
     with PdfPages(f"{IMG_PATH+str(h)}_plots.pdf") as pdf:
         for col in df.columns:
-            print(col)
+            # print(col)
             plt.figure()
-            plt.hist(df[col], bins=100, ls='solid', linewidth=3, edgecolor='k', alpha=.5, color='b')
+            plt.hist(df[col], bins=50, ls='solid', linewidth=3, edgecolor='k', alpha=.5, color='b')
 
             plt.title(col)
             plt.xlabel(col)
             plt.ylabel("No. of tracks")
+            plt.yscale('log')
             # plt.ylim([0, y_max*1.15])
             plt.grid()
 

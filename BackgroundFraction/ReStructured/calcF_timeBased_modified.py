@@ -10,6 +10,19 @@ import ROOT
 from ROOT import RooFit, RooArgSet, RooArgList, RooGaussian, RooRealVar, RooAddPdf, TCanvas
 
 from plotting import plot_table, plot_box
+from utilities import FEDtoReadOut
+
+ROOT.gErrorIgnoreLevel = ROOT.kWarning
+RooMsgService = ROOT.RooMsgService.instance()
+RooMsgService.Print()
+# Remove all
+# RooMsgService.setGlobalKillBelow(RooFit.ERROR)
+
+# Remove selected topics
+RooMsgService.getStream(1).removeTopic(RooFit.DataHandling)
+RooMsgService.getStream(1).removeTopic(RooFit.Eval)
+RooMsgService.getStream(1).removeTopic(RooFit.Plotting)
+RooMsgService.getStream(1).removeTopic(RooFit.Minimization)
 
 Fill = "8236"
 FILE_PATH = "/mnt/d/CernBox/data/temp_access/"
@@ -19,11 +32,11 @@ IMG_PATH = "plots/"
 fLogPath = "logs/" + Fill + "F.csv"
 
 startTime = 1665152400
-# endTime = 1665196200
-endTime = 1665152400 + 1000
-step = 300
+endTime = 1665196200
+# endTime = 1665152400 + 1000
+# step = 300
 
-channel = -1    # -1 for all channels
+channel = 10    # -1 for all channels
 
 # open file using uproot
 file = uproot.open(fPath)
@@ -109,8 +122,16 @@ for h in range(len(indices) - 1):
     subselection = tree.arrays(variables, entry_start=indices[h], entry_stop=indices[h + 1], library="np")
     table = pd.DataFrame(subselection)
 
-    print("Number of entries in this:", len(subselection['SlopeY']))
-    dataRead = ROOT.RooDataSet.from_numpy(subselection, [SlopeY])
+    table['Channel'] = table['Channel'].map(FEDtoReadOut())
+    table = table[table["Channel"] == 10]
+    # print(table)
+
+    subselection = table.to_dict('list')
+    # print(subselection["SlopeY"])
+    
+
+    # print("Number of entries in this:", len(subselection['SlopeY']))
+    dataRead = ROOT.RooDataSet.from_numpy({"SlopeY": np.array(subselection["SlopeY"])}, [SlopeY])
     ntracks_time = int(dataRead.sumEntries())
     print("Entries read: ", ntracks_time)
 
