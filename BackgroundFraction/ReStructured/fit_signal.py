@@ -1,27 +1,74 @@
+import time
+import uproot
+import numpy as np
+import pandas as pd
 import ROOT
 from ROOT import RooFit, RooArgSet, RooArgList, RooDataSet, RooGaussian, RooRealVar, RooAddPdf, TCanvas
 
-FillNumber = '8178'
+from utilities import FEDtoReadOut
+
+
+Fill = '8178'
 Lumi = "2.5e30"
 
-track_init = 5001
-step = 50000
+FILE_PATH = "/mnt/d/CernBox/data/temp_access/"
+fPath = FILE_PATH + Fill + ".root"
 
-fName = "Fill_" + FillNumber + ".root"
-fTitle = "SlopeY distribution of Fill " + FillNumber
+channel = 10    # -1 for all channels
 
-ntrack = 0
+# track_init = 5001
+# step = 50000
 
-SlopeY = RooRealVar("SlopeY", "SlopeY", 0, -0.08, 0.1)
-track = RooRealVar("track", "track", track_init, track_init + step - 1)
-timesec = RooRealVar("timesec", "timesec", 0)
+fTitle = "SlopeY distribution of Fill " + Fill
 
-f1 = ROOT.TFile.Open("/mnt/d/Cernbox/data/temp_access/8178.root")
-t = f1.Get('T')
+# open file using uproot
+file = uproot.open(fPath)
+tree = file["T"]
 
-arg_set = RooArgSet(track, timesec, SlopeY)
+SlopeY = RooRealVar("SlopeY", "SlopeY", 0)
 
-dataRead = RooDataSet("dataRead", "dataset with SlopeY", t, arg_set)
+variables = ["timesec", "Channel",
+                 "SlopeX", "SlopeY",
+                 'ResidualX_ROC0', 'ResidualX_ROC1', 'ResidualX_ROC2',
+                 'ResidualY_ROC0', 'ResidualY_ROC1', 'ResidualY_ROC2',
+                 'BeamspotX_y', 'BeamspotX_z',
+                 'BeamspotY_x', 'BeamspotY_z',
+                 'BeamSpotZ_x', 'BeamSpotZ_y']
+
+subselection = tree.arrays(variables,  library="np")
+table = pd.DataFrame(subselection)
+
+table['Channel'] = table['Channel'].map(FEDtoReadOut())
+table = table[table["Channel"].isin([1, 2, 3, 8, 10])]
+
+
+
+# table = table[table["Channel"]==]
+
+subselection = table.to_dict('list')
+
+dataRead = ROOT.RooDataSet.from_numpy({"SlopeY": np.array(subselection["SlopeY"])}, [SlopeY])
+ntracks_time = int(dataRead.sumEntries())
+print("Entries read: ", ntracks_time)
+
+t1 = table['timesec'].iat[0]
+t2 = table["timesec"].iat[-1]
+t1_string = time.strftime('%H:%M:%S', time.localtime(t1))
+t2_string = time.strftime('%H:%M:%S', time.localtime(t2))
+
+print(f"Processing {t1_string}-{t2_string}")
+
+# SlopeY = RooRealVar("SlopeY", "SlopeY", 0, -0.08, 0.1)
+# track = RooRealVar("track", "track", track_init, track_init + step - 1)
+# timesec = RooRealVar("timesec", "timesec", 0)
+# Channel = RooRealVar("Channel", "Channel", 10, 10, 10)
+
+# f1 = ROOT.TFile.Open("/mnt/d/Cernbox/data/temp_access/8178.root")
+# t = f1.Get('T')
+
+# arg_set = RooArgSet(track, timesec, SlopeY)
+
+# dataRead = RooDataSet("dataRead", "dataset with SlopeY", t, arg_set)
 
 # Define Gaussian
 m0 = RooRealVar("m0", "mean 0", 0.027, 0.01, 0.05)
@@ -68,6 +115,7 @@ pt = frame1.findObject("model_paramBox")
 pt.AddText(ROOT.Form(f"Chi2/ndof =  {chi2:.2f}"))
 ntracks = int(dataRead.sumEntries())
 pt.AddText(ROOT.Form(f"Tracks = {ntracks}"))
+pt.AddText(f'timesec = {t1_string} - {t2_string}')
 
 
 c1 = TCanvas("c1", "c1", 800, 800)
@@ -96,3 +144,5 @@ frame3.Draw()
 c3.Draw()
 
 c1.SaveAs("sample.png")
+c2.SaveAs("sample2.png")
+c3.SaveAs("sample3.png")
