@@ -13,7 +13,7 @@ from utilities import pltTimestamps
 HOSTNAME = os.uname()[1]
 if HOSTNAME == "DELLNK":
     sys.path.insert(0, '/home/nimmitha/utils')
-elif "lxplus" in HOSTNAME:
+elif "lxplus" in HOSTNAME or "scx5-c2f06-36" in HOSTNAME:
     sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
 else:
     print("Hostname not recognized. Exiting.")
@@ -219,7 +219,7 @@ def add_timestamps_to_fills(pltTS, df):
     # df.to_csv("input_fills.csv", encoding='utf-8', header=True)
 
 
-def generate_missing_fills():
+def generate_missing_fills(pltTS):
     """
     Check the results folder and compare it with the decoded fills
     If there are newly decoded fills, create a list of them.
@@ -244,7 +244,7 @@ def generate_missing_fills():
     df.index.name = 'fill'
 
     df.duration = 300
-    df = add_timestamps_to_fills(df)
+    df = add_timestamps_to_fills(pltTS, df)
 
     df.to_csv("input_fills.csv", encoding='utf-8', header=True)
 
@@ -263,7 +263,7 @@ def generate_missing_fills():
 def main():
     pltTS = pltTimestamps(PLT_PATH)
 
-    df = generate_missing_fills()
+    df = generate_missing_fills(pltTS)
     # create_maketrack_fills_csv(df)
 
     # for i in range(df.shape[0]):
