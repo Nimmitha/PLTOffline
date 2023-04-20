@@ -6,27 +6,16 @@ import pandas as pd
 sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
 from nf import post_to_slack
 
+from utilities import pltTimestamps
+
 # PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
 # PLT_PATH = "/home/nkarunar/PLTOffline/"
-PLT_PATH = os.getcwd().rsplit("/", 1)[0]
+PLT_PATH = os.getcwd().split("PLTOffline")[0] + "PLTOffline/"
+# PLT_PATH = os.getcwd().rsplit("/", 1)[0]
 FILE_PATH = "/home/nkarunar/hit_root_files/"
 FILE_EXT = ".root"
 
 print("Working from:", PLT_PATH)
-
-
-def pltTimestamps():
-    # import pltTimestamps.csv file as dataframe (contains slink_files and workloop timestamps corresponding to all stable beam fills)
-    def parseDate(x): return pd.to_datetime(x, format='%Y%m%d.%H%M%S')
-    with open(os.path.join(PLT_PATH, 'pltTimestamps.csv'), 'r') as tsFile:
-        cols = tsFile.readline().strip().split('|')
-        tsFile.seek(0)
-        dtypes = dict(zip(cols, ['int']+9*['str']))
-        # [https://stackoverflow.com/a/37453925/13019084]
-        pltTS = pd.read_csv(
-            tsFile, sep='|', dtype=dtypes, parse_dates=cols[1:5], date_parser=parseDate)
-    pltTS = pltTS.set_index('fill').fillna('')
-    return pltTS
 
 
 def runMakeTrack(arg_MakeTrack):
@@ -38,7 +27,7 @@ def runMakeTrack(arg_MakeTrack):
     print(x)
 
 
-def combine_root_files(fill, StartTime, EndTime, nslink_files):
+def combine_root_files(fill, nslink_files):
     print(" Combining", nslink_files, "root files.")
     rootfName = str(fill)
     cmd_hadd = ["hadd", "-f"] + [rootfName + "_raw" + FILE_EXT]
@@ -76,10 +65,11 @@ def getTracks(pltTS):
         EndTime = str(hh*3600 + mm*60)
 
         rootfName = str(fill)  # + "_" + StartTime + "_" + EndTime
-        print("Check if", rootfName, "already exists.")
+        # print("Check if", rootfName, "already exists.")
 
         if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
             print("ROOT file", rootfName, "already exists. Skipping..")
+            # continue
             # return
 
         print("ROOT file not found. Creating", rootfName)
@@ -96,8 +86,8 @@ def getTracks(pltTS):
             continue
 
         year = slink_files[0][:4]
-        if year != '2022':
-            print("Only checked for 2022. Check before running")
+        if year not in ['2022', '2023']:
+            print("Only checked for 2022 and 2023. Check before running")
             continue
 
         arg_MakeTrack = ["", gainCal, alignment, str(fill), StartTime, EndTime, ""]
@@ -107,84 +97,58 @@ def getTracks(pltTS):
             # run for each file
             for i, slink_file in enumerate(slink_files):
                 arg_MakeTrack[3] = str(fill) + "_" + str(i)
-                arg_MakeTrack[0] = os.path.join(
-                    '/localdata', year,  f'SLINK/Slink_{slink_file}.dat')
-
-                slink_date = pd.to_datetime(slink_file, format='%Y%m%d.%H%M%S')
-                startTime_adjust = int(
-                    (row.start_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
-                endTime_adjust = int(
-                    (row.end_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
-
-                dateToSend = row.start_stable_beam.date()
-
-                if startTime_adjust < 0:
-                    dateToSend = dateToSend + pd.Timedelta(abs(startTime_adjust), 'D')
-                    startTime_adjust = 0
-                if endTime_adjust < 0:
-                    endTime_adjust = 0
-
-                AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
-                AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
-
-                arg_MakeTrack[4] = str(AStartTime)
-                arg_MakeTrack[5] = str(AEndTime)
-                arg_MakeTrack[6] = str(dateToSend.strftime("%s"))
+                
+                arg_MakeTrack = get_makeTrack_args(slink_file, row, arg_MakeTrack, StartTime, EndTime)
 
                 runMakeTrack(arg_MakeTrack)
-            combine_root_files(fill, str(AStartTime),
-                               str(AEndTime), nslink_files)
+            combine_root_files(fill, nslink_files)
 
         else:
             # run once
-            arg_MakeTrack[0] = os.path.join(
-                '/localdata', year,  f'SLINK/Slink_{slink_files[0]}.dat')
-
-            slink_date = pd.to_datetime(slink_files[0], format='%Y%m%d.%H%M%S')
-            startTime_adjust = int(
-                (row.start_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
-            endTime_adjust = int(
-                (row.end_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
-
-            AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
-            AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
-
-            dateToSend = row.start_stable_beam.date()
-            print(dateToSend)
-            # print(dateToSend.strftime("%s"))
-
-            if startTime_adjust < 0:
-                dateToSend = dateToSend + pd.Timedelta(abs(startTime_adjust), 'D')
-                startTime_adjust = 0
-            if endTime_adjust < 0:
-                endTime_adjust = 0
-
-            AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
-            AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
-
-            arg_MakeTrack[4] = str(AStartTime)
-            arg_MakeTrack[5] = str(AEndTime)
-            arg_MakeTrack[6] = str(dateToSend.strftime("%s")) # https://www.geeksforgeeks.org/convert-python-datetime-to-epoch/
-
+            arg_MakeTrack = get_makeTrack_args(slink_files[0], row, arg_MakeTrack, StartTime, EndTime)
+  
             runMakeTrack(arg_MakeTrack)
 
 
-def main():
-    pltTS = pltTimestamps()
+def get_makeTrack_args(slink_file_name, row, arg_MakeTrack, StartTime, EndTime):
+    slink_date = pd.to_datetime(slink_file_name, format='%Y%m%d.%H%M%S')
+    startTime_adjust = int((row.start_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
+    endTime_adjust = int((row.end_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
+    
+    dateToSend = row.start_stable_beam.date()
+    print(dateToSend)
 
-    start_fill, end_fill = 8214, 8214 #8149, 8149
-    # start_fill, end_fill = 8121, 8121  # 8149, 8149
+    if startTime_adjust < 0:
+        dateToSend = dateToSend + pd.Timedelta(abs(startTime_adjust), 'D')
+        startTime_adjust = 0
+    if endTime_adjust < 0:
+        endTime_adjust = 0
+
+    AStartTime = int(StartTime) + startTime_adjust * 24 * 3600
+    AEndTime = int(EndTime) + endTime_adjust * 24 * 3600
+
+    arg_MakeTrack[0] = os.path.join('/localdata', slink_date.strftime("%Y"),  f'SLINK/Slink_{slink_file_name}.dat')
+    arg_MakeTrack[4] = str(AStartTime)
+    arg_MakeTrack[5] = str(AEndTime)
+    arg_MakeTrack[6] = str(dateToSend.strftime("%s"))
+
+    return arg_MakeTrack
+
+def main():
+    pltTS = pltTimestamps(PLT_PATH)
+
+    start_fill, end_fill = 8559, 8600 #8149, 8149
     exclude_fill = [8178]
 
     pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
-    try:
-        pltTS = pltTS.loc[pltTS.index.drop(exclude_fill)]
-    except:
-        pass
+
+    fills_to_run = [fill for fill in list(pltTS.index) if fill not in exclude_fill]
+    pltTS = pltTS.loc[fills_to_run]
 
     print("List of fills:", list(pltTS.index))
     post_to_slack(message_text="Found:"+str.join(",",
                   [str(i) for i in list(pltTS.index)]))
+    
     try:
         getTracks(pltTS)
     except Exception as e:
