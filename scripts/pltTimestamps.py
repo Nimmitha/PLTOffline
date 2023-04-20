@@ -69,13 +69,14 @@ def gainCal( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     # insert selected gain calibration file timestamps with "usable" results [https://github.com/cmsplt/PLTOffline/tree/master/GainCal/2020]
         # start with most recent gainCal timestamp and assign to all fills until fill start_stable_beam timestamp < gainCal timestamp. and also constrain to be in the same year
     def gainCalNextFill( gainCalTS:str ):
+        # print(pltTS)
         return pltTS.iloc[ pandas.Index(pltTS['start_stable_beam']).get_loc( gainCalTS.replace('.', ' '), method='backfill' ) ].name
         # find index (fill number) of the most proximate (but still larger) start_stable_beam timestamp to the input gainCalTS
 
     gainCalTS = [ '20150811.120552', '20150923.225334', '20151029.220336', \
                 '20160819.113115', \
                 '20170518.143905', '20170717.224815', '20170731.122306', '20170921.104620', '20171026.164159', \
-                '20180419.131317', '20180430.123258', '20180605.124858', '20180621.160623', '20220803.143004']
+                '20180419.131317', '20180430.123258', '20180605.124858', '20180621.160623', '20220803.143004', '20230401.010101']
     for ts in sorted( gainCalTS, reverse=True):
         # print(pltTS)
         pltTS.loc[ ( pltTS.start_time.dt.year == int(ts[0:4]) ) & ( pltTS.index >= gainCalNextFill(ts) ), 'gainCal' ] = ts
@@ -90,6 +91,7 @@ def alignment( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     pltTS.loc[ pltTS.start_time.dt.year == 2016, 'alignment' ] = 'Trans_Alignment_4892.dat'
     pltTS.loc[ pltTS.start_time.dt.year == 2017, 'alignment' ] = 'Trans_Alignment_2017MagnetOn_Prelim.dat'
     pltTS.loc[ pltTS.start_time.dt.year == 2022, 'alignment' ] = 'Trans_Alignment_8033.dat'
+    pltTS.loc[ pltTS.start_time.dt.year == 2023, 'alignment' ] = 'Trans_Alignment_8033.dat'
     # pltTS.loc[ 6570:6579, 'alignment' ] = 'Trans_Alignment_6666.dat' # (example)
     return pltTS
 
@@ -114,7 +116,7 @@ def pltTimestamps( year:int ) -> pandas.DataFrame:
 def main():
     #omsapi = cmsomsAuth()
     pltTS = pandas.DataFrame()
-    for year in 2015, 2016, 2017, 2018, 2022:
+    for year in 2015, 2016, 2017, 2018, 2022, 2023:
         yearTS = pltTimestamps( year )
         pltTS = pltTS.append( yearTS )
 
