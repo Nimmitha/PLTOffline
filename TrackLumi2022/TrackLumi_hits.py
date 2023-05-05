@@ -109,6 +109,8 @@ def getTracks(pltTS):
   
             runMakeTrack(arg_MakeTrack)
 
+        post_to_slack(message_text="Finished  "+str(fill))
+
 
 def get_makeTrack_args(slink_file_name, row, arg_MakeTrack, StartTime, EndTime):
     slink_date = pd.to_datetime(slink_file_name, format='%Y%m%d.%H%M%S')
@@ -137,7 +139,7 @@ def get_makeTrack_args(slink_file_name, row, arg_MakeTrack, StartTime, EndTime):
 def main():
     pltTS = pltTimestamps(PLT_PATH)
 
-    start_fill, end_fill = 8559, 8600 #8149, 8149
+    start_fill, end_fill = 8600, 8700 #8149, 8149
     exclude_fill = [8178]
 
     pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
