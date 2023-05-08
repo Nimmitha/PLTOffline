@@ -266,7 +266,7 @@ void PLTGainCal::ReadGainCalFile5 (std::string const GainCalFileName)
   if (errorcount1<20){
     if (ch  >  MAXCHNS) { printf("ERROR: over MAXCHNS: ch = %i\n", ch); };
     if (row >= MAXROWS) { printf("ERROR: over MAXROWS %i\n", row); };
-    if (col >= MAXCOLS) { printf("ERROR: over MAXCOLS %i\n", col); };
+    // if (col >= MAXCOLS) { printf("ERROR: over MAXCOLS %i\n", col); };
     if (roc >= MAXROCS) { printf("ERROR: over MAXROCS %i\n", roc); };
     ++errorcount1;
   }
