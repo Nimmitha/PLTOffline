@@ -1,5 +1,4 @@
 from utilities import pltTimestamps
-from nf import post_to_slack
 import os
 import sys
 import subprocess
@@ -7,6 +6,7 @@ import pandas as pd
 import argparse
 
 sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
+from nf import post_to_slack
 
 
 PLT_PATH = os.getcwd().split("PLTOffline")[0] + "PLTOffline/"
@@ -22,10 +22,8 @@ print("Working from:", PLT_PATH)
 def runMakeTrack_version(arg_MakeTrack, mode):
     if mode == "hits":
         process = "MakeTracks_hits_nk"
-        print("Collecting hits")
     elif mode == "tracks":
         process = "MakeTracks_nk"
-        print("Collecting tracks")
 
     cmd = [os.path.join(PLT_PATH, process)] + arg_MakeTrack
     print("\n" + "*" * 50)
@@ -33,6 +31,8 @@ def runMakeTrack_version(arg_MakeTrack, mode):
     print("*" * 50)
     x = subprocess.run(cmd)
     print(x)
+    if x.returncode != 0:
+        raise Exception("Error in MakeTracks")
 
 
 def combine_root_files(fill, nslink_files):
@@ -123,7 +123,6 @@ def get_makeTrack_args(slink_file_name, row, arg_MakeTrack, StartTime, EndTime):
     endTime_adjust = int((row.end_stable_beam.date() - slink_date.date()) / pd.Timedelta(1, 'D'))
 
     dateToSend = row.start_stable_beam.date()
-    print(dateToSend)
 
     if startTime_adjust < 0:
         dateToSend = dateToSend + pd.Timedelta(abs(startTime_adjust), 'D')
@@ -162,7 +161,7 @@ def main(args):
         getTracks(fills_to_run, args.mode)
     except Exception as exception:
         print(exception)
-        post_to_slack(message_text=exception)
+        post_to_slack(message_text=str(exception))
 
 
 if __name__ == "__main__":
