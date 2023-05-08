@@ -67,8 +67,8 @@ int MakeTracks(std::string const DataFileName, std::string const GainCalFileName
 
   // Define file name, file path and Title of the TTree
   std::string fName = FillNumber; //+ "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
-  // std::string fPathString = "/home/nkarunar/root_files/" + fName + ".root";
-  std::string fPathString = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/" + fName + ".root";
+  std::string fPathString = "/home/nkarunar/track_root_files/" + fName + ".root";
+  // std::string fPathString = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/" + fName + ".root";
 
 
   std::string tNameString = "Track parameters for fill " + fName;
