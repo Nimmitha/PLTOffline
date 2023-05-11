@@ -60,8 +60,8 @@ def getTracks(pltTS, mode):
         fill = int(row.name)
 
         # Send notifications
-        post_to_slack(message_text="Working on " + str(fill))
-        print("Working on", fill)
+        post_to_slack(message_text=f"Collecting {mode} for {fill}")
+        print(f"Collecting {mode} for {fill}")
 
         # Read the start and end times
         hh = row.start_stable_beam.hour
@@ -75,10 +75,10 @@ def getTracks(pltTS, mode):
         rootfName = str(fill)
 
         if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
-            print(f"ROOT file with {mode}", rootfName, "already exists. Skipping..")
+            print(f"ROOT file with {mode} for fill {rootfName} already exists. Skipping..")
             continue
         else:
-            print("ROOT file not found. Creating", rootfName)
+            print(f"ROOT file not found. Creating {rootfName}")
 
         gainCal = os.path.join(PLT_PATH, f"GainCal/2020/GainCalFits_{row.gainCal}.dat")
         alignment = os.path.join(PLT_PATH, "ALIGNMENT", row.alignment)
@@ -99,7 +99,7 @@ def getTracks(pltTS, mode):
 
         # run for each file
         if nslink_files > 1:
-            print("SLINK data is split into", nslink_files, "files.")
+            print(f"SLINK data is split into {nslink_files} files")
 
             for i, slink_file in enumerate(slink_files):
                 arg_MakeTrack[3] = str(fill) + "_" + str(i)
@@ -114,7 +114,7 @@ def getTracks(pltTS, mode):
 
             runMakeTrack_version(arg_MakeTrack, mode)
 
-        post_to_slack(message_text=f"Finished collecting {mode} for " + str(fill))
+        post_to_slack(message_text=f"Finished collecting {mode} for {fill}")
 
 
 def get_makeTrack_args(slink_file_name, row, arg_MakeTrack, StartTime, EndTime):
@@ -155,7 +155,7 @@ def main(args):
 
     fills_to_run = get_fills_to_run(args.start, args.end)
     print("List of fills:", list(fills_to_run.index))
-    post_to_slack(message_text="Found:" + str.join(",", [str(i) for i in list(fills_to_run.index)]))
+    post_to_slack(message_text=f"Collecting {args.mode} for fills: " + str.join(",", [str(i) for i in list(fills_to_run.index)]))
 
     try:
         getTracks(fills_to_run, args.mode)
@@ -168,8 +168,8 @@ if __name__ == "__main__":
     # Define the command-line arguments
     parser = argparse.ArgumentParser(description='Collect SLINK tracks or hits')
     parser.add_argument('--mode', type=str, choices=["hits", "tracks"], default="hits", help='Program to run', required=True)
-    parser.add_argument('--start', type=int, default=8700, help='Start fill (inclusive))')
-    parser.add_argument('--end', type=int, default=8700, help='End fill (inclusive))')
+    parser.add_argument('--start', type=int, required=True, help='Start fill (inclusive))')
+    parser.add_argument('--end', type=int, required=True, help='End fill (inclusive))')
     args = parser.parse_args()
 
     if args.mode == "hits":
