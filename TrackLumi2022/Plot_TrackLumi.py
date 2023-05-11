@@ -1,76 +1,109 @@
+from utilities import FEDtoReadOut
+import sys
 import pathlib
-import uproot
+from os.path import join
+import uproot4 as uproot
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from glob import glob
+import argparse
 import mplhep as hep
 hep.style.use("CMS")
 
-def pltChannelMap() -> pd.DataFrame:
-    quadrants = pd.Series(['-zNear','-zFar','+zNear','+zFar']).repeat(12)
-    flavor = pd.Series(['Calabrese','Diavola','Capricciosa','Margherita']).repeat(12)
-    mFec = pd.Series(['8-1','8-2','7-1','7-2']).repeat(12)
-    anaLV = pd.Series(f'PLT_1.8_H{q}' for q in ['mN','mF','pN','pF']).repeat(12)
-    digLV = pd.Series(f'PLT_2.5_H{q}' for q in ['mN','mF','pN','pF']).repeat(12)
-    HV = pd.Series(f'PLTHV_H{q}T{ch}' for q in ['mN','mF','pN','pF'] for ch in [*range(4)]).repeat(3)
-    hub = pd.Series(4*['H05','H13','H21','H29']).repeat(3)
-    roc = pd.Series(16*[0,1,2])
-    roCh = pd.Series([*range(16)]).repeat(3)
-    pixCh = pd.Series(sorted([*range(1,24)][::3] + [*range(1,24)][1::3])).repeat(3)
-    fOrCh = pd.Series(f'{fed}-{fo}' for fed in [0,1] for i in [1,4,10,13,19,22,28,31] for fo in [*range(i,i+3)])
-    data = zip(quadrants, flavor, mFec, anaLV, digLV, HV, hub, roCh, pixCh, roc, fOrCh)
-    cols = ['quadrant','flavor','mFecCh','analogLV','digitalLV','HV','hub','readoutCh','pixFEDCh','roc','forFEDCh']
-    return pd.DataFrame(data=data, columns=cols)
+sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
+from nf import post_to_slack
 
-FEDtoReadOut = dict (zip( pltChannelMap()['pixFEDCh'], pltChannelMap()['readoutCh'] ))
+IN_FILE_PATH = "/home/nkarunar/track_root_files/"
+OUT_FILE_PATH = "/home/nkarunar/PLTOffline/TrackLumi2022/plots/track_rates/"
 
-interval = '1min'
-#files = glob('D:/Cernbox/data/slink_data/slink_tracks/????.root')
-files = glob("/home/nkarunar/root_files/????.root")
-print(files)
 
-for file in files:
-    fill = int(pathlib.Path(file).stem)
-    if fill <=  8132: # Already done. Remove later
-        continue
-    print(fill)
-    
-    tree = uproot.open(f"{file}:T")
-    df = tree.arrays(['event_time', 'Channel'], library='pd')
-    df['event_time'] = pd.to_datetime(df['event_time'])
-    df.loc[:, 'Count'] = 1
-    
-    table = df.pivot_table(index='event_time', columns=['Channel'], values='Count', aggfunc=np.sum, fill_value=0)
-    table.reset_index(inplace=True)
-    table['event_time'] = table['event_time'].dt.round(interval)
-    
-    acu_table = table.groupby('event_time').sum().rename(columns=FEDtoReadOut)
-    
+def make_plot(table, fill, interval):
+    channels = [i for i in table.columns if isinstance(i, (int))]
+    minus_channels = [i for i in channels if i < 8]
+    plus_channels = [i for i in channels if i >= 8]
+
     dfmt = mdates.DateFormatter("%H:%M")
     plt.figure(figsize=(16, 9))
-    for ch in range(0, 8):
-        plt.plot(acu_table.index, acu_table[ch], '.-', label=f'ch{ch}')
+    for ch in minus_channels:
+        plt.plot(table.index, table[ch], 'o-', label=f'ch{ch}')
     plt.gca().xaxis.set_major_formatter(dfmt)
     plt.xticks(rotation=90)
     plt.xlabel('Time (UTC)')
     plt.ylabel("No. of Tracks")
     plt.legend(loc="lower left", ncol=4)
     plt.tight_layout()
-    plt.savefig(f"output/{fill}_{interval}_M.png", dpi=600)
+    plt.savefig(join(OUT_FILE_PATH, f"{fill}_{interval}_M.png"), dpi=600)
     plt.clf()
 
     plt.figure(figsize=(16, 9))
-    for ch in range(8, 16):
-        plt.plot(acu_table.index, acu_table[ch], '.-', label=f'ch{ch}')
+    for ch in plus_channels:
+        plt.plot(table.index, table[ch], 'o-', label=f'ch{ch}')
     plt.gca().xaxis.set_major_formatter(dfmt)
     plt.xticks(rotation=90)
     plt.xlabel('Time (UTC)')
     plt.ylabel("No. of Tracks")
     plt.legend(loc="lower left", ncol=4)
     plt.tight_layout()
-    plt.savefig(f"output/{fill}_{interval}_P.png", dpi=600)
+    plt.savefig(join(OUT_FILE_PATH, f"{fill}_{interval}_P.png"), dpi=600)
     plt.clf()
 
-    df.drop
+
+def convert_to_timestamp(df):
+    """Converts the timesec and timemsec columns to a timestamp column"""
+    df.timesec = df.timesec.map(str)
+    df.timemsec = df.timemsec.map(str).str.zfill(3)
+    df.insert(2, 'timestamp', pd.to_datetime(df.timesec + df.timemsec, unit='ms') + pd.Timedelta(hours=2))
+    df.drop(['timesec', 'timemsec'], axis=1, inplace=True)
+    return df
+
+
+def get_agg_table(file, interval):
+    """Returns a pivot table with the number of tracks per channel per interval"""
+    tree = uproot.open(f"{file}:T")
+    df = tree.arrays(['timesec', 'timemsec', 'Channel'], library='pd')
+    df = convert_to_timestamp(df)
+
+    df['timestamp'] = df['timestamp'].dt.round(interval)
+    table = df.pivot_table(index='timestamp', columns=['Channel'], aggfunc=len, fill_value=0).rename(columns=FEDtoReadOut())
+    return table
+
+
+def process_file(file, fill, interval):
+    table = get_agg_table(file, interval)
+    make_plot(table, fill, interval)
+
+
+def main(args):
+    files = glob(join(IN_FILE_PATH, "????.root"))
+
+    if len(files) == 0:
+        print("No files to process")
+        return
+
+    for file in files:
+        fill = int(pathlib.Path(file).stem)
+        if fill < args.start or fill > args.end:
+            continue
+
+        print(f"Plotting track rate for {file}")
+        post_to_slack(f"Plotting track rate for {file}")
+
+        try:
+            process_file(file, fill, args.interval)
+            print(f"Finished plotting track rate for {file}")
+        except Exception as e:
+            print(f"Error processing {file}: {e}")
+            post_to_slack(f"Error processing {file}: {e.__class__.__name__}")
+            continue
+
+
+if __name__ == "__main__":
+    # Define the command-line arguments
+    parser = argparse.ArgumentParser(description='Plot luminosity from track data')
+    parser.add_argument('--start', type=int, required=True, help='Start fill (inclusive))')
+    parser.add_argument('--end', type=int, required=True, help='End fill (inclusive))')
+    parser.add_argument('--interval', type=str, default='5min', help='Interval to plot')
+    args = parser.parse_args()
+
+    main(args)
