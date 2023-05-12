@@ -1,4 +1,6 @@
 from utilities import FEDtoReadOut
+import sys
+import argparse
 import pandas as pd
 from glob import glob
 import uproot4 as uproot
@@ -6,6 +8,11 @@ import pathlib
 from os.path import join
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import mplhep as hep
+hep.style.use("CMS")
+
+sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
+from nf import post_to_slack
 
 IN_FILE_PATH = "/home/nkarunar/hit_root_files/"
 OUT_FILE_PATH = "/home/nkarunar/PLTOffline/TrackLumi2022/output/plots/3co/"
@@ -92,7 +99,7 @@ def process_file(file, fill, interval):
     print(f"Number of entries: {nentries}")
 
     table_chunks = []
-    for df, report in tree.iterate(['timesec', 'timemsec', 'event', 'channel', 'roc', 'row', 'col'], step_size="5 MB", library='pd', report=True):
+    for df, report in tree.iterate(['timesec', 'timemsec', 'event', 'channel', 'roc', 'row', 'col'], step_size="30 MB", library='pd', report=True):
         print(f'File read progress : {report.stop/nentries*100:0.2f}%')
 
         table = process_chunk(df, table_chunks, interval)
@@ -120,10 +127,18 @@ def main(args):
             continue
 
         print(f"Plotting 3Co for {file}")
-        table = process_file(file, fill, args.interval)
-        make_plot(table, fill, args.interval)
-
-        print(f"Finished plotting 3Co {file}")
+        post_to_slack(f"Plotting 3Co for {file}")
+        
+        try:  
+            table = process_file(file, fill, args.interval)
+            make_plot(table, fill, args.interval)
+            print(f"Finished plotting 3Co {file}")
+            post_to_slack(f"Finished plotting 3Co {file}")
+        except Exception as e:
+            print(f"Error plotting 3Co {file}")
+            print(e)
+            post_to_slack(f"Error plotting 3Co {file}: {e.__class__.__name__}")
+            continue
 
 
 if __name__ == "__main__":
