@@ -94,8 +94,8 @@ float PLTGainCal::GetCharge(int const ch, int const roc, int const col, int cons
   int errorcount = 0;
   if (errorcount<20){
     if (ch  >= MAXCHNS) { printf("ERROR: over MAXCHNS: ch = %i\n", ch); };
-    if (row >= MAXROWS) { printf("ERROR: over MAXROWS: %i\n", row); };
-    if (col >= MAXCOLS) { printf("ERROR: over MAXCOLS: %i\n", col); };
+    // if (row >= MAXROWS) { printf("ERROR: over MAXROWS: %i\n", row); };
+    // if (col >= MAXCOLS) { printf("ERROR: over MAXCOLS: %i\n", col); };
     ++errorcount;
   }
   int irow = RowIndex(row);
