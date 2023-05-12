@@ -92,6 +92,7 @@ def main(args):
         try:
             process_file(file, fill, args.interval)
             print(f"Finished plotting track rate for {file}")
+            post_to_slack(f"Finished plotting track rate for {file}")
         except Exception as e:
             print(f"Error processing {file}: {e}")
             post_to_slack(f"Error processing {file}: {e.__class__.__name__}")
