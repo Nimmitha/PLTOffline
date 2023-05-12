@@ -1,6 +1,7 @@
 import math
 import csv
 import os
+from os.path import join
 import pathlib
 import sys
 import subprocess
@@ -18,8 +19,8 @@ from nf import post_to_slack
 PLT_PATH = os.getcwd().rsplit("/", 1)[0]
 # PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
 
-# FILE_PATH = "/home/nkarunar/root_files/"
-FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
+FILE_PATH = "/home/nkarunar/track_root_files/"
+# FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
 
 FILE_EXT = ".root"
 
@@ -205,7 +206,7 @@ def combineLogs(df_row):
 def pltTimestamps():
     # import pltTimestamps.csv file as dataframe (contains slink and workloop timestamps corresponding to all stable beam fills)
     def parseDate(x): return pd.to_datetime(x, format='%Y%m%d.%H%M%S')
-    with open('/eos/home-n/nkarunar/workrepos/PLTOffline/pltTimestamps.csv', 'r') as tsFile:
+    with open(join(PLT_PATH, 'pltTimestamps.csv'), 'r') as tsFile:
         cols = tsFile.readline().strip().split('|')
         tsFile.seek(0)
         dtypes = dict(zip(cols, ['int']+9*['str']))
@@ -227,6 +228,8 @@ def create_all_missing():
     # print(track_files)
     excluded = [8178, 8225, 8381, 8385]
     missing_results = [fill for fill in track_files if fill not in result_files and fill not in excluded]
+    
+    missing_results = [8730, 8741] # for testing
     print(missing_results)
     post_to_slack(message_text=f'Bkg will work on: {missing_results}')
 

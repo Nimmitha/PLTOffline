@@ -7,6 +7,31 @@ import subprocess
 from glob import glob
 import pandas as pd
 from pandas.tseries.offsets import Minute
+from calcF_timeBased_func import get_bckg_frac
+
+
+import time
+
+import mplhep as hep
+hep.style.use("CMS")
+import uproot
+import ROOT
+from ROOT import RooFit, RooArgSet, RooArgList, RooGaussian, RooRealVar, RooAddPdf, TCanvas
+
+from plotting import plot_table, plot_box
+from utilities import FEDtoReadOut
+
+ROOT.gErrorIgnoreLevel = ROOT.kWarning
+RooMsgService = ROOT.RooMsgService.instance()
+RooMsgService.Print()
+# Remove all
+# RooMsgService.setGlobalKillBelow(RooFit.ERROR)
+
+# Remove selected topics
+RooMsgService.getStream(1).removeTopic(RooFit.DataHandling)
+RooMsgService.getStream(1).removeTopic(RooFit.Eval)
+RooMsgService.getStream(1).removeTopic(RooFit.Plotting)
+RooMsgService.getStream(1).removeTopic(RooFit.Minimization)
 
 from utilities import pltTimestamps
 
@@ -26,8 +51,8 @@ PLT_PATH = os.getcwd().split("PLTOffline")[0] + "PLTOffline/"
 
 # PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
 
-# FILE_PATH = "/home/nkarunar/root_files/"
-FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
+FILE_PATH = "/home/nkarunar/track_root_files/"
+# FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
 
 FILE_EXT = ".root"
 
@@ -54,22 +79,34 @@ def create_maketrack_fills_csv(df):
     print("_maketrack_fills.csv created.")
 
 
+# def run_fit_scripts(df_row):
+#     print("\n Running fit script ", end='')
+#     fill = str(df_row.index[0])
+
+#     StartTime = str(int(df_row.iat[0, 0].strftime("%s")) + 0 * 3600)
+#     EndTime = str(int(df_row.iat[0, 1].strftime("%s")) + 0 * 3600)
+
+#     step = str(df_row.iat[0, 2])
+
+#     print("for Fill", fill)
+#     cmd_runScript = ["root", "-b", "-l", "-q"] + [
+#         "calcF_timeBased.C(\"" + fill + "\"," + StartTime + "," + EndTime + "," + step + ")"]
+#     print(cmd_runScript)
+
+#     x = subprocess.run(cmd_runScript)
+#     print(x)
+
 def run_fit_scripts(df_row):
     print("\n Running fit script ", end='')
     fill = str(df_row.index[0])
 
-    StartTime = str(int(df_row.iat[0, 0].strftime("%s")) + 0 * 3600)
-    EndTime = str(int(df_row.iat[0, 1].strftime("%s")) + 0 * 3600)
+    StartTime = (int(df_row.iat[0, 0].strftime("%s")) + 0 * 3600)
+    EndTime = (int(df_row.iat[0, 1].strftime("%s")) + 0 * 3600)
 
-    step = str(df_row.iat[0, 2])
+    step = (df_row.iat[0, 2])
 
     print("for Fill", fill)
-    cmd_runScript = ["root", "-b", "-l", "-q"] + [
-        "calcF_timeBased.C(\"" + fill + "\"," + StartTime + "," + EndTime + "," + step + ")"]
-    print(cmd_runScript)
-
-    x = subprocess.run(cmd_runScript)
-    print(x)
+    get_bckg_frac(fill, StartTime, EndTime, step)
 
 
 def get_inst_luminosity(df_row):
@@ -236,17 +273,22 @@ def generate_missing_fills(pltTS):
     excluded = [8178, 8225, 8381, 8385]
 
     missing_results = [fill for fill in decoded_files if fill not in result_files and fill not in excluded]
+    
+    missing_results = [8730, 8741] # For testing
     print(missing_results)
     post_to_slack(message_text=f'Bkg will work on: {missing_results}')
 
     # Create a csv file with the missing fills
     df = pd.DataFrame(columns=['start', 'end', 'duration'], index=missing_results)
     df.index.name = 'fill'
+    # print(df)
 
     df.duration = 300
     df = add_timestamps_to_fills(pltTS, df)
+    print(df)
 
     df.to_csv("input_fills.csv", encoding='utf-8', header=True)
+    return df
 
 
 
@@ -264,18 +306,19 @@ def main():
     pltTS = pltTimestamps(PLT_PATH)
 
     df = generate_missing_fills(pltTS)
-    # create_maketrack_fills_csv(df)
+    print(df)
+    create_maketrack_fills_csv(df)
 
-    # for i in range(df.shape[0]):
-    #     print("\nWorking on row", df.index[i])
-    #     post_to_slack(message_text=f"Begin bkg calc {df.index[i]}")
+    for i in range(df.shape[0]):
+        print("\nWorking on row", df.index[i])
+        post_to_slack(message_text=f"Begin bkg calc {df.index[i]}")
 
-    #     run_fit_scripts(df.iloc[[i]])
-    #     get_inst_luminosity(df.iloc[[i]])
-    #     combineLogs(df.iloc[[i]])
+        run_fit_scripts(df.iloc[[i]])
+        get_inst_luminosity(df.iloc[[i]])
+        combineLogs(df.iloc[[i]])
 
-    #     print("\nDone row", df.index[i])
-    #     post_to_slack(message_text=f"Done bkg calc {df.index[i]}")
+        print("\nDone row", df.index[i])
+        post_to_slack(message_text=f"Done bkg calc {df.index[i]}")
 
 
 if __name__ == main():

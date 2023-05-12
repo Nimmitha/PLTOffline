@@ -18,8 +18,8 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
     std::stringstream string_buffer;
     std::string t1_data_s, t2_data_s;
     
-    // std::string FILE_PATH = "/home/nkarunar/root_files/";
-    std::string FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/";
+    std::string FILE_PATH = "/home/nkarunar/track_root_files/";
+    // std::string FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/";
     std::string IMG_PATH = "plots/";
 
     // std::string fName = FillNumber + "_" + std::to_string(StartTime) + "_" + std::to_string(EndTime);
@@ -45,7 +45,7 @@ void calcF_timeBased(std::string FillNumber, Int_t StartTime, Int_t EndTime, Int
     RooRealVar BeamSpotZ_x("BeamSpotZ_x", "BeamSpotZ_x", -20, 20);
     RooRealVar BeamSpotZ_y("BeamSpotZ_y", "BeamSpotZ_y", -20, 20);
     RooRealVar timesec("timesec", "timesec", StartTime, EndTime - 1);
-    //RooRealVar Channel("Channel", "Channel", 12, 21);
+    RooRealVar Channel("Channel", "Channel", 15, 21);
 
     std::cout << "Reading range [" << StartTime << ", " << EndTime << ")" << std::endl;
 
