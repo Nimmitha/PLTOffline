@@ -36,7 +36,7 @@ endTime = 1665196200
 # endTime = 1665152400 + 1000
 # step = 300
 
-channels = [10, 11, 12, 14, 15]    # -1 for all channels
+channel = 10    # -1 for all channels
 
 # open file using uproot
 file = uproot.open(fPath)

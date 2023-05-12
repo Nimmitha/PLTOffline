@@ -14,7 +14,7 @@ Lumi = "2.5e30"
 FILE_PATH = "/mnt/d/CernBox/data/temp_access/"
 fPath = FILE_PATH + Fill + ".root"
 
-channels = [10, 11, 12, 14, 15]    # -1 for all channels
+channel = 10    # -1 for all channels
 
 # track_init = 5001
 # step = 50000
@@ -38,24 +38,9 @@ variables = ["timesec", "Channel",
 subselection = tree.arrays(variables,  library="np")
 table = pd.DataFrame(subselection)
 
-pd.to_datetime(table.timesec, unit='s')
-
-
 table['Channel'] = table['Channel'].map(FEDtoReadOut())
+table = table[table["Channel"].isin([1, 2, 3, 8, 10])]
 
-# table['timestamp'] = pd.to_datetime(table.timesec, unit='s') + pd.Timedelta(hours=2)
-
-regB_1 = int((pd.Timestamp("2022-09-25 17:53") - pd.Timedelta(hours=2)).timestamp())
-regB_2 = int((pd.Timestamp("2022-09-26 05:23") - pd.Timedelta(hours=2)).timestamp())
-
-table = table[(table.timesec > regB_1) & (table.timesec < regB_2)]
-
-
-# Region B
-# 2022-09-25 17:53
-# 2022-09-26 05:23
-
-table = table[table["Channel"].isin([12])]
 
 
 # table = table[table["Channel"]==]

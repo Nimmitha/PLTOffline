@@ -11,6 +11,7 @@ BackgroundFraction/plots/*
 BackgroundFraction/logs/*
 BackgroundFraction/temp/*
 BackgroundFraction/ReStructured/plots/*
+BackgroundFraction/ReStructured_channel10_results/plots/*
 test/*
 lib/*
 data
