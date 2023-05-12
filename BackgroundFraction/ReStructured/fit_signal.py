@@ -48,7 +48,6 @@ regB_1 = int((pd.Timestamp("2022-09-25 17:53") - pd.Timedelta(hours=2)).timestam
 regB_2 = int((pd.Timestamp("2022-09-26 05:23") - pd.Timedelta(hours=2)).timestamp())
 table = table[(table.timesec > regB_1) & (table.timesec < regB_2)]
 
-
 table = table[table["Channel"].isin(channels)]
 subselection = table.to_dict('list')
 
