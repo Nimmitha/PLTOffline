@@ -41,8 +41,8 @@ def plot_box(model, frame1, chi2, ntracks_time, t1_string, t2_string, h, Fill):
     del frame1
 
 
-def plot_table(df, h):
-    with PdfPages(f"{IMG_PATH+str(h)}_plots.pdf") as pdf:
+def plot_table(df, h, Fill):
+    with PdfPages(f"{IMG_PATH}{Fill}_{h}_plots.pdf") as pdf:
         for col in df.columns:
             # print(col)
             plt.figure()

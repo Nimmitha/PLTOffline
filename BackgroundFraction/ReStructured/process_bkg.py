@@ -51,7 +51,8 @@ PLT_PATH = os.getcwd().split("PLTOffline")[0] + "PLTOffline/"
 
 # PLT_PATH = "/eos/home-n/nkarunar/workrepos/PLTOffline/"
 
-FILE_PATH = "/home/nkarunar/track_root_files/"
+# FILE_PATH = "/home/nkarunar/track_root_files/"
+FILE_PATH = "/mnt/d/Cernbox/data/temp_access/"
 # FILE_PATH = "/eos/home-n/nkarunar/data/slink_data/slink_tracks/"
 
 FILE_EXT = ".root"
@@ -161,8 +162,8 @@ def get_inst_luminosity(df_row):
         t1 = StartTime + i * step
         t2 = StartTime + (i + 1) * step
 
-        mean_lumi = df_lumi[(df_lumi["time"] >= t1) & (
-            df_lumi["time"] < t2)]["del"].mean()
+        mean_lumi = df_lumi[(df_lumi["time"] > t1) & (
+            df_lumi["time"] <= t2)]["del"].mean()
         mean_sbil = mean_lumi / collidingBunches
 
         t1_save = t1.strftime('%s')
@@ -178,6 +179,11 @@ def get_inst_luminosity(df_row):
 
 def combineLogs(df_row):
     def getCB(fill):
+        if fill == 8730:
+            return 1150
+        if fill == 8741:
+            return 1890
+
         fill_info = pd.read_csv(os.path.join(PLT_PATH, 'fill_info.csv'), index_col='oms_fill_number')
         fill_info = fill_info[fill_info.oms_stable_beams == True]
 
@@ -274,7 +280,8 @@ def generate_missing_fills(pltTS):
 
     missing_results = [fill for fill in decoded_files if fill not in result_files and fill not in excluded]
     
-    missing_results = [8730, 8741] # For testing
+    missing_results = [8741] # For testing
+    # missing_results = [8730, 8741] # For testing
     print(missing_results)
     post_to_slack(message_text=f'Bkg will work on: {missing_results}')
 
@@ -314,7 +321,7 @@ def main():
         post_to_slack(message_text=f"Begin bkg calc {df.index[i]}")
 
         run_fit_scripts(df.iloc[[i]])
-        get_inst_luminosity(df.iloc[[i]])
+        # get_inst_luminosity(df.iloc[[i]])
         combineLogs(df.iloc[[i]])
 
         print("\nDone row", df.index[i])

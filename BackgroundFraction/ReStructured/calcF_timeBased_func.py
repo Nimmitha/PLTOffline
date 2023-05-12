@@ -45,15 +45,45 @@ RooMsgService.getStream(1).removeTopic(RooFit.Minimization)
 
 
 def get_boundary_indices(tree, startTime, endTime):
+    print(startTime, endTime)
     # print("Type of startTime", type(startTime))
     # print("Type of endTime", type(endTime))
     """Get indices of the first and last entry in each 5 minute interval"""
     data = tree.arrays(["timesec"], library="pd")
-    data = data[(data.timesec >= startTime) & (data.timesec <= endTime)]
-    data["timestamp"] = pd.to_datetime(data.timesec.map(str), unit='s') + pd.Timedelta(seconds=150)
-    data['round'] = data.timestamp.dt.round('5min')
-    indices = np.where(data['round'].diff() != pd.Timedelta(days=0))[0]
-    indices = np.append(indices, len(data))
+    data.reset_index(inplace=True)
+    data.rename(columns={"index": "entry"}, inplace=True)
+    data = data[(data.timesec > startTime) & (data.timesec <= endTime)]
+    # print(data)
+    # return data
+    data["timestamp"] = pd.to_datetime(data.timesec.map(str), unit='s') #+ pd.Timedelta(seconds=1) #- pd.Timedelta(seconds=150)
+    # print(data)
+    # bins = pd.date_range(start=data['timestamp'].min(), end=data['timestamp'].max(), freq='5min')
+    bins = pd.date_range(start=pd.to_datetime(startTime, unit='s'), end=pd.to_datetime(endTime, unit='s'), freq='5min')
+    # print(bins)
+    data['interval'] = pd.cut(data['timestamp'], bins=bins, labels=bins[:-1])
+    # print(data)
+    boundaries = data.groupby('interval').agg({'entry': ['first', 'last']})
+    boundaries.reset_index(inplace=True)
+    boundaries.columns = boundaries.columns.droplevel(0)
+    df = boundaries.rename(columns={'': 'timestamp', 'first': 'start', 'last': 'end'})
+    # print(df)
+    return df
+
+
+
+
+    # data['round'] = data.timestamp.dt.round('5min')
+    # print(data)
+    # indices = np.where(data['round'].diff() != pd.Timedelta(days=0))[0]
+    # print(indices)
+    # indices = np.append(indices, len(data)-1)
+
+    # print(indices)
+    # print(len(indices))
+    # time_at_indices = data.iloc[indices]['round']
+    # print(time_at_indices.to_list())
+    # print(len(time_at_indices))
+
     return indices
 
 
@@ -68,8 +98,10 @@ def get_boundary_indices(tree, startTime, endTime):
 # print(total_data)
 
 def get_bckg_frac(Fill, startTime, endTime, step):
+    # Fill = "8236"
     channels = [10, 11, 12, 14, 15] 
-    FILE_PATH = "/home/nkarunar/track_root_files/"
+    # FILE_PATH = "/home/nkarunar/track_root_files/"
+    FILE_PATH = "/mnt/d/Cernbox/data/temp_access/"
     fPath = FILE_PATH + Fill + ".root"
 
     IMG_PATH = "plots/"
@@ -77,6 +109,7 @@ def get_bckg_frac(Fill, startTime, endTime, step):
     file = uproot.open(fPath)
     tree = file["T"]
     indices = get_boundary_indices(tree, startTime, endTime)
+    
 
 
     SlopeY = ROOT.RooRealVar("SlopeY", "SlopeY", 0)
@@ -120,9 +153,9 @@ def get_bckg_frac(Fill, startTime, endTime, step):
     # with open(fLogPath, 'w', encoding='utf-8') as myfile:
     #     myfile.write("fill,h,t1,t2,ntracks_time,ntracks_resi,bkg_frac,bkg_frac_e,bkg_m0,bkg_m0_e,bkg_s0,bkg_s0_e,BS_X,BS_X_std,BS_Y,BS_Y_std,chi2\n")
 
-    print("Total loops", len(indices) - 1)
+    print("Total loops", len(indices))
 
-    for h in range(len(indices) - 1):
+    for h in indices.index:
         print("Loop", h)
         fFile_box = IMG_PATH + "fit_slopeY" + Fill + "_" + str(h) + "_box.png"
 
@@ -134,7 +167,7 @@ def get_bckg_frac(Fill, startTime, endTime, step):
                     'BeamspotY_x', 'BeamspotY_z',
                     'BeamSpotZ_x', 'BeamSpotZ_y']
 
-        subselection = tree.arrays(variables, entry_start=indices[h], entry_stop=indices[h + 1], library="np")
+        subselection = tree.arrays(variables, entry_start=indices.iloc[h]['start'], entry_stop=indices.iloc[h]['end'], library="np")
         table = pd.DataFrame(subselection)
 
         table['Channel'] = table['Channel'].map(FEDtoReadOut())
@@ -150,8 +183,14 @@ def get_bckg_frac(Fill, startTime, endTime, step):
         ntracks_time = int(dataRead.sumEntries())
         print("Entries read: ", ntracks_time)
 
-        t1 = table['timesec'].iat[0]
-        t2 = table["timesec"].iat[-1]
+        t1 = int(indices.iloc[h]['timestamp'].timestamp())
+        t2 = int((indices.iloc[h]['timestamp'] + pd.Timedelta(minutes=5)).timestamp()) - 1
+
+        # t1_string = indices.iloc[h]['timeestamp']
+        # t2_string = indices.iloc[h]['timeestamp'] + pd.Timedelta(minutes=5)
+
+        # t1 = table['timesec'].iat[0]
+        # t2 =  table["timesec"].iat[-1]
         t1_string = time.strftime('%H:%M:%S', time.localtime(t1))
         t2_string = time.strftime('%H:%M:%S', time.localtime(t2))
 
@@ -175,7 +214,7 @@ def get_bckg_frac(Fill, startTime, endTime, step):
 
         ntracks_resi = 0
 
-        new_row = [Fill, h, channel, t1, t2,
+        new_row = [Fill, str(-1), h, t1, t2,
                 ntracks_time, ntracks_resi,
                 bkg_frac.getVal(), bkg_frac.getError(),
                 bkg_m0.getVal(), bkg_m0.getError(),
@@ -187,9 +226,10 @@ def get_bckg_frac(Fill, startTime, endTime, step):
                 table.BeamSpotZ_x.mean(), table.BeamSpotZ_x.std(),
                 table.BeamSpotZ_y.mean(), table.BeamSpotZ_y.std(),
                 chi2]
-
+        
+        print(new_row)
         log_df.loc[len(log_df)] = new_row
         plot_box(model, frame1, chi2, ntracks_time, t1_string, t2_string, h, Fill)
-        plot_table(table, h)
+        plot_table(table, h, Fill)
 
     log_df.to_csv(fLogPath, index=False, header=False, mode='a')
