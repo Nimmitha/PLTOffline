@@ -13,6 +13,7 @@ BackgroundFraction/temp/*
 BackgroundFraction/ReStructured/plots/*
 TrackLumi2022/plots/*
 TrackLumi2022/output/*
+BackgroundFraction/ReStructured_channel10_results/plots/*
 test/*
 lib/*
 data
