@@ -11,6 +11,8 @@ BackgroundFraction/plots/*
 BackgroundFraction/logs/*
 BackgroundFraction/temp/*
 BackgroundFraction/ReStructured/plots/*
+TrackLumi2022/plots/*
+TrackLumi2022/output/*
 test/*
 lib/*
 data
