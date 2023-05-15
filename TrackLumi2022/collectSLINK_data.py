@@ -24,6 +24,8 @@ def runMakeTrack_version(arg_MakeTrack, mode):
         process = "MakeTracks_hits_nk"
     elif mode == "tracks":
         process = "MakeTracks_nk"
+    else:
+        raise Exception("Invalid mode")
 
     cmd = [os.path.join(PLT_PATH, process)] + arg_MakeTrack
     print("\n" + "*" * 50)
@@ -36,7 +38,7 @@ def runMakeTrack_version(arg_MakeTrack, mode):
 
 
 def combine_root_files(fill, nslink_files):
-    print(" Combining", nslink_files, "root files.")
+    print("Combining", nslink_files, "root files.")
     rootfName = str(fill)
     cmd_hadd = ["hadd", "-f"] + [rootfName + "_raw" + FILE_EXT]
     for i in range(nslink_files):
@@ -52,7 +54,6 @@ def run_fix_track_numbers(rootfName):
         ["fix_track_numbers.C(\"" + rootfName + "\")"]
     x = subprocess.run(cmd_fixTrackNo)
     print(x)
-
 
 def getTracks(pltTS, mode):
 
@@ -76,6 +77,7 @@ def getTracks(pltTS, mode):
 
         if os.path.isfile(FILE_PATH + rootfName + FILE_EXT):
             print(f"ROOT file with {mode} for fill {rootfName} already exists. Skipping..")
+            post_to_slack(message_text=f"ROOT file with {mode} for fill {rootfName} already exists. Skipping..")
             continue
         else:
             print(f"ROOT file not found. Creating {rootfName}")
@@ -143,7 +145,7 @@ def get_makeTrack_args(slink_file_name, row, arg_MakeTrack, StartTime, EndTime):
 
 def get_fills_to_run(start_fill, end_fill):
     pltTS = pltTimestamps(PLT_PATH)
-    exclude_fill = [8178]
+    exclude_fill = [i for i in range(8692, 8739)]
 
     pltTS = pltTS[(pltTS.index >= start_fill) & (pltTS.index <= end_fill)]
 
@@ -167,6 +169,7 @@ def main(args):
 if __name__ == "__main__":
     # Define the command-line arguments
     parser = argparse.ArgumentParser(description='Collect SLINK tracks or hits')
+
     parser.add_argument('--mode', type=str, choices=["hits", "tracks"], default="hits", help='Program to run', required=True)
     parser.add_argument('--start', type=int, required=True, help='Start fill (inclusive))')
     parser.add_argument('--end', type=int, required=True, help='End fill (inclusive))')
