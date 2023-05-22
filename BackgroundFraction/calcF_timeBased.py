@@ -1,21 +1,20 @@
+from utilities import FEDtoReadOut
+from plotting import plot_table, plot_box
+from ROOT import RooFit, RooArgSet, RooArgList, RooGaussian, RooRealVar, RooAddPdf, TCanvas
+from tqdm import tqdm
+import ROOT
+import pandas as pd
+import numpy as np
+import uproot
 import time
-# import uproot4 as uproot
 
 import mplhep as hep
 hep.style.use("CMS")
-# import uproot4 as uproot
-import uproot
-import numpy as np
-import pandas as pd
-import ROOT
-from ROOT import RooFit, RooArgSet, RooArgList, RooGaussian, RooRealVar, RooAddPdf, TCanvas
 
-from plotting import plot_table, plot_box
-from utilities import FEDtoReadOut
 
 ROOT.gErrorIgnoreLevel = ROOT.kWarning
 RooMsgService = ROOT.RooMsgService.instance()
-RooMsgService.Print()
+# RooMsgService.Print()
 # Remove all
 # RooMsgService.setGlobalKillBelow(RooFit.ERROR)
 
@@ -42,11 +41,30 @@ def get_boundary_indices(tree, startTime, endTime):
     # print(df)
     return df
 
+
+def calculate_sigma(table):
+    """Calculate absolute sigma for each variable and add to table"""
+    var_list = ["SlopeX", "SlopeY", 'ResidualX_ROC0', 'ResidualX_ROC1', 'ResidualX_ROC2',
+                'ResidualY_ROC0', 'ResidualY_ROC1', 'ResidualY_ROC2']
+    for var in var_list:
+        table[f"{var}_sigma"] = abs((table[var] - table[var].mean()) / table[var].std())
+
+    table_filtered = table.copy()
+    for var in var_list:
+        cut = table_filtered[f"{var}_sigma"] < 5
+        table_filtered = table_filtered[cut]
+
+    ntrack_resi = len(table_filtered)
+
+    return table, ntrack_resi
+
+
 def get_bckg_frac(Fill, startTime, endTime, step):
-    # Fill = "8236"
-    channels = [10, 11, 12, 14, 15] 
-    # FILE_PATH = "/home/nkarunar/track_root_files/"
-    FILE_PATH = "/mnt/d/Cernbox/data/temp_access/"
+    """Get background fraction for a given fill and time range"""
+    print(f"Processing {Fill} from {startTime} to {endTime}")
+    channels = [10, 11, 12, 14, 15]
+    FILE_PATH = "/home/nkarunar/track_root_files/"
+    # FILE_PATH = "/mnt/d/Cernbox/data/temp_access/"
     fPath = FILE_PATH + Fill + ".root"
 
     IMG_PATH = "plots/"
@@ -54,8 +72,6 @@ def get_bckg_frac(Fill, startTime, endTime, step):
     file = uproot.open(fPath)
     tree = file["T"]
     indices = get_boundary_indices(tree, startTime, endTime)
-    
-
 
     SlopeY = ROOT.RooRealVar("SlopeY", "SlopeY", 0)
     m0 = RooRealVar("m0", "mean 0", 0.026817, 0.02, 0.03)
@@ -82,68 +98,51 @@ def get_bckg_frac(Fill, startTime, endTime, step):
     # Define Model
     model = RooAddPdf("model", "model (fggg + g)", RooArgList(bkg, sig), bkg_frac)
 
-
-    log_cols = ["fill", "channel", "h", "t1", "t2",
-                "ntracks_time", "ntracks_resi",
-                "bkg_frac", "bkg_frac_e", "bkg_m0", "bkg_m0_e", "bkg_s0", "bkg_s0_e",
-                "BSX_y", "BSX_y_std", "BSX_z", "BSX_z_std",
-                "BSY_x", "BSY_x_std", "BSY_z", "BSY_z_std",
-                "BSZ_x", "BSZ_x_std", "BSZ_y", "BSZ_y_std",
-                "chi2"]
-    log_dict = {key: [] for key in log_cols}
-
-    log_df = pd.DataFrame(log_dict)
-    log_df.to_csv(fLogPath, index=False, header=True, mode='w')
-
-    # with open(fLogPath, 'w', encoding='utf-8') as myfile:
-    #     myfile.write("fill,h,t1,t2,ntracks_time,ntracks_resi,bkg_frac,bkg_frac_e,bkg_m0,bkg_m0_e,bkg_s0,bkg_s0_e,BS_X,BS_X_std,BS_Y,BS_Y_std,chi2\n")
-
-    print("Total loops", len(indices))
-
-    for h in indices.index:
-        print("Loop", h)
+    log_dfs = []
+    # print("Total loops", len(indices))
+    for h in tqdm(indices.index):
+        # print("Loop", h)
         fFile_box = IMG_PATH + "fit_slopeY" + Fill + "_" + str(h) + "_box.png"
 
         variables = ["timesec", "Channel",
-                    "SlopeX", "SlopeY",
-                    'ResidualX_ROC0', 'ResidualX_ROC1', 'ResidualX_ROC2',
-                    'ResidualY_ROC0', 'ResidualY_ROC1', 'ResidualY_ROC2',
-                    'BeamspotX_y', 'BeamspotX_z',
-                    'BeamspotY_x', 'BeamspotY_z',
-                    'BeamSpotZ_x', 'BeamSpotZ_y']
+                     "SlopeX", "SlopeY",
+                     'ResidualX_ROC0', 'ResidualX_ROC1', 'ResidualX_ROC2',
+                     'ResidualY_ROC0', 'ResidualY_ROC1', 'ResidualY_ROC2',
+                     'BeamSpotZ_x', 'BeamSpotZ_y']
 
         subselection = tree.arrays(variables, entry_start=indices.iloc[h]['start'], entry_stop=indices.iloc[h]['end'], library="np")
         table = pd.DataFrame(subselection)
 
         table['Channel'] = table['Channel'].map(FEDtoReadOut())
         table = table[table["Channel"].isin(channels)]
-        print(table)
+        # print(table)
+
+        table, ntracks_resi = calculate_sigma(table)
 
         subselection = table.to_dict('list')
-        # print(subselection["SlopeY"])
-        
 
-        # print("Number of entries in this:", len(subselection['SlopeY']))
         dataRead = ROOT.RooDataSet.from_numpy({"SlopeY": np.array(subselection["SlopeY"])}, [SlopeY])
         ntracks_time = int(dataRead.sumEntries())
-        print("Entries read: ", ntracks_time)
+        # print("Entries read: ", ntracks_time)
 
         t1 = int(indices.iloc[h]['timestamp'].timestamp())
         t2 = int((indices.iloc[h]['timestamp'] + pd.Timedelta(minutes=5)).timestamp()) - 1
-
-        # t1_string = indices.iloc[h]['timeestamp']
-        # t2_string = indices.iloc[h]['timeestamp'] + pd.Timedelta(minutes=5)
-
-        # t1 = table['timesec'].iat[0]
-        # t2 =  table["timesec"].iat[-1]
         t1_string = time.strftime('%H:%M:%S', time.localtime(t1))
         t2_string = time.strftime('%H:%M:%S', time.localtime(t2))
 
-        print(f"Processing {t1_string}-{t2_string}")
+        # print(f"Processing {t1_string}-{t2_string}")
 
+        log_df = pd.DataFrame()
         if ntracks_time == 0:
-            new_row = [Fill, -1, h, t1, t2, ntracks_time] + [0] * 20
-            log_df.loc[len(log_df)] = new_row
+            log_df.loc[h, 'fill'] = Fill
+            log_df.loc[h, 'channel'] = str(-1)
+            log_df.loc[h, 'h'] = str(h)
+            log_df.loc[h, 't1'] = str(t1)
+            log_df.loc[h, 't2'] = str(t2)
+            log_df.loc[h, 'ntracks_time'] = str(ntracks_time)
+            log_df.loc[h, 'ntracks_resi'] = str(ntracks_resi)
+            log_dfs.append(log_df)
+            continue
 
         frame1 = SlopeY.frame(RooFit.Range(-0.08, 0.12), RooFit.Title(""))
         dataRead.plotOn(frame1, RooFit.Name("dataSet"))
@@ -153,28 +152,32 @@ def get_bckg_frac(Fill, startTime, endTime, step):
         model.plotOn(frame1, RooFit.Components(RooArgSet(sig)), RooFit.LineColor(ROOT.kGreen))
         model.plotOn(frame1, RooFit.Components(RooArgSet(bkg)), RooFit.LineColor(ROOT.kRed))
         model.plotOn(frame1, RooFit.Name("model"))
-        
+
         # Calculate chi2
         chi2 = frame1.chiSquare("model", "dataSet", 5)
 
-        ntracks_resi = 0
+        log_df.loc[h, 'fill'] = Fill
+        log_df.loc[h, 'channel'] = str(-1)
+        log_df.loc[h, 'h'] = str(h)
+        log_df.loc[h, 't1'] = str(t1)
+        log_df.loc[h, 't2'] = str(t2)
+        log_df.loc[h, 'ntracks_time'] = str(ntracks_time)
+        log_df.loc[h, 'ntracks_resi'] = str(ntracks_resi)
+        log_df.loc[h, 'bkg_frac'] = bkg_frac.getVal()
+        log_df.loc[h, 'bkg_frac_e'] = bkg_frac.getError()
+        log_df.loc[h, 'bkg_m0'] = bkg_m0.getVal()
+        log_df.loc[h, 'bkg_m0_e'] = bkg_m0.getError()
+        log_df.loc[h, 'bkg_s0'] = bkg_s0.getVal()
+        log_df.loc[h, 'bkg_s0_e'] = bkg_s0.getError()
+        log_df.loc[h, 'BSZ_x'] = table.BeamSpotZ_x.mean()
+        log_df.loc[h, 'BSZ_x_std'] = table.BeamSpotZ_x.std()
+        log_df.loc[h, 'BSZ_y'] = table.BeamSpotZ_y.mean()
+        log_df.loc[h, 'BSZ_y_std'] = table.BeamSpotZ_y.std()
+        log_df.loc[h, 'chi2'] = chi2
 
-        new_row = [Fill, str(-1), h, t1, t2,
-                ntracks_time, ntracks_resi,
-                bkg_frac.getVal(), bkg_frac.getError(),
-                bkg_m0.getVal(), bkg_m0.getError(),
-                bkg_s0.getVal(), bkg_s0.getError(),
-                table.BeamspotX_y.mean(), table.BeamspotX_y.std(),
-                table.BeamspotX_z.mean(), table.BeamspotX_z.std(),
-                table.BeamspotY_x.mean(), table.BeamspotY_x.std(),
-                table.BeamspotY_z.mean(), table.BeamspotY_z.std(),
-                table.BeamSpotZ_x.mean(), table.BeamSpotZ_x.std(),
-                table.BeamSpotZ_y.mean(), table.BeamSpotZ_y.std(),
-                chi2]
-        
-        print(new_row)
-        log_df.loc[len(log_df)] = new_row
+        log_dfs.append(log_df)
+
         plot_box(model, frame1, chi2, ntracks_time, t1_string, t2_string, h, Fill)
         plot_table(table, h, Fill)
 
-    log_df.to_csv(fLogPath, index=False, header=False, mode='a')
+    pd.concat(log_dfs).to_csv(fLogPath, index=False, header=True, mode='w')

@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-
 import ROOT
-from ROOT import RooFit, TCanvas
+from ROOT import RooFit, TCanvas, gROOT
+
+# Enable batch mode
+gROOT.SetBatch(True)
 
 IMG_PATH = "plots/"
 
@@ -31,14 +33,11 @@ def plot_box(model, frame1, chi2, ntracks_time, t1_string, t2_string, h, Fill):
     pt = frame1.findObject("model_paramBox")
     pt.AddText(ROOT.Form(f"Chi2/ndof =  {chi2:.2f}"))
     pt.AddText(ROOT.Form(f"Tracks =  {ntracks_time}"))
-
     pt.AddText(f'timesec = {t1_string} - {t2_string}')
+    pt.SetFillStyle(1001)
     frame1.Draw()
     c_box.SaveAs(fFile_box)
-    # frame1.Clear()
-    # c_box.Clear()
-    del c_box
-    del frame1
+    c_box.Close()
 
 
 def plot_table(df, h, Fill):
@@ -46,8 +45,12 @@ def plot_table(df, h, Fill):
         for col in df.columns:
             # print(col)
             plt.figure()
-            plt.hist(df[col], bins=50, ls='solid', linewidth=3, edgecolor='k', alpha=.5, color='b')
-
+            try:
+                plt.hist(df[col], bins=50, ls='solid', linewidth=3, edgecolor='k', alpha=.5, color='b')
+            except Exception as e:
+                print(e)
+                print(col, df[col])
+                continue
             plt.title(col)
             plt.xlabel(col)
             plt.ylabel("No. of tracks")

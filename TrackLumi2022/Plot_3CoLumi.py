@@ -15,7 +15,7 @@ sys.path.insert(0, '/afs/cern.ch/user/n/nkarunar/utils')
 from nf import post_to_slack
 
 IN_FILE_PATH = "/home/nkarunar/hit_root_files/"
-OUT_FILE_PATH = "/home/nkarunar/PLTOffline/TrackLumi2022/output/plots/3co/"
+OUT_FILE_PATH = "/home/nkarunar/PLTOffline/TrackLumi2022/plots/3co/"
 
 
 def make_plot(table, fill, interval):
@@ -131,6 +131,7 @@ def main(args):
         
         try:  
             table = process_file(file, fill, args.interval)
+            table.set_index("timestamp", inplace=True)
             make_plot(table, fill, args.interval)
             print(f"Finished plotting 3Co {file}")
             post_to_slack(f"Finished plotting 3Co {file}")

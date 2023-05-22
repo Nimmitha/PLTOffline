@@ -99,7 +99,7 @@ model.plotOn(frame1, RooFit.Name("model"))
 chi2 = frame1.chiSquare("model", "dataSet", 8)
 
 # ParamBox
-model.paramOn(frame1, RooFit.Layout(0.7), RooFit.Format(("NEU"), RooFit.AutoPrecision(1)))
+model.paramOn(frame1, RooFit.Layout(0.7), RooFit.Format("NEU", RooFit.AutoPrecision(1)))
 frame1.getAttText().SetTextSize(0.02)
 pt = frame1.findObject("model_paramBox")
 pt.AddText(ROOT.Form(f"Chi2/ndof =  {chi2:.2f}"))
@@ -107,11 +107,18 @@ ntracks = int(dataRead.sumEntries())
 pt.AddText(ROOT.Form(f"Tracks = {ntracks}"))
 pt.AddText(f'timesec = {t1_string} - {t2_string}')
 
+# This is weird. Fill color also covers the boarder so the line is not visible.
+frame1.getAttFill('model_paramBox').SetFillStyle(1001)
+# frame1.getAttFill('model_paramBox').SetFillStyle(1001)
+# frame1.getAttFill('model_paramBox').SetFillColor(19)
+# frame1.getAttLine('model_paramBox').SetLineColor(ROOT.kBlack)
+# https://root-forum.cern.ch/t/remove-box-in-paramon/19781/2
 
 c1 = TCanvas("c1", "c1", 800, 800)
 c1.SetLogy(True)
 frame1.Draw()
 c1.Draw()
+c1.SaveAs("siganal_ggg.png")
 
 # Plot residual distribution
 hresid = frame1.residHist("dataSet")
@@ -120,6 +127,7 @@ frame2 = SlopeY.frame(RooFit.Range(-0.02, 0.08), RooFit.Title("Residual Distribu
 frame2.addPlotable(hresid, "P")
 frame2.Draw()
 c2.Draw()
+c2.SaveAs("signal_residual.png")
 
 # Plot pull distribution
 hpull = frame1.pullHist()
@@ -128,7 +136,4 @@ frame3 = SlopeY.frame(RooFit.Range(-0.02, 0.08), RooFit.Title("Pull Distribution
 frame3.addPlotable(hpull, "P")
 frame3.Draw()
 c3.Draw()
-
-c1.SaveAs("sample.png")
-c2.SaveAs("sample2.png")
-c3.SaveAs("sample3.png")
+c3.SaveAs("signal_pull.png")
