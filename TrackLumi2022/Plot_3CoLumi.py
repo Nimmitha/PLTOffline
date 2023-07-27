@@ -33,7 +33,7 @@ def make_plot(table, fill, interval):
     plt.ylabel("SLINK Triple-Coincidence")
     plt.legend(loc="lower left", ncol=4)
     plt.tight_layout()
-    plt.savefig(join(OUT_FILE_PATH, f"{fill}_3Co_{interval}_M.png"), dpi=600)
+    plt.savefig(join(OUT_FILE_PATH, f"{fill}_3Co_{interval}_M.png"), dpi=300)
     plt.clf()
 
     plt.figure(figsize=(16, 9))
@@ -45,7 +45,7 @@ def make_plot(table, fill, interval):
     plt.ylabel("SLINK Triple-Coincidence")
     plt.legend(loc="lower left", ncol=4)
     plt.tight_layout()
-    plt.savefig(join(OUT_FILE_PATH, f"{fill}_3Co_{interval}_P.png"), dpi=600)
+    plt.savefig(join(OUT_FILE_PATH, f"{fill}_3Co_{interval}_P.png"), dpi=300)
     plt.clf()
 
 
@@ -71,6 +71,8 @@ def get_3Co(df):
 
 
 def aggregate_to(df, interval='1min'):
+    if int(interval) == 0:
+        return df
     df.timestamp = df.timestamp.dt.round(interval)
     df = df.groupby('timestamp').sum()
     df.reset_index(inplace=True)

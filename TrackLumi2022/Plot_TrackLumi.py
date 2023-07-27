@@ -33,7 +33,7 @@ def make_plot(table, fill, interval):
     plt.ylabel("No. of Tracks")
     plt.legend(loc="lower left", ncol=4)
     plt.tight_layout()
-    plt.savefig(join(OUT_FILE_PATH, f"{fill}_{interval}_M.png"), dpi=600)
+    plt.savefig(join(OUT_FILE_PATH, f"{fill}_{interval}_M.png"), dpi=300)
     plt.clf()
 
     plt.figure(figsize=(16, 9))
@@ -45,7 +45,7 @@ def make_plot(table, fill, interval):
     plt.ylabel("No. of Tracks")
     plt.legend(loc="lower left", ncol=4)
     plt.tight_layout()
-    plt.savefig(join(OUT_FILE_PATH, f"{fill}_{interval}_P.png"), dpi=600)
+    plt.savefig(join(OUT_FILE_PATH, f"{fill}_{interval}_P.png"), dpi=300)
     plt.clf()
 
 
@@ -64,13 +64,16 @@ def get_agg_table(file, interval):
     df = tree.arrays(['timesec', 'timemsec', 'Channel'], library='pd')
     df = convert_to_timestamp(df)
 
-    df['timestamp'] = df['timestamp'].dt.round(interval)
+    if not int(interval) == 0:
+        df['timestamp'] = df['timestamp'].dt.round(interval)
+
     table = df.pivot_table(index='timestamp', columns=['Channel'], aggfunc=len, fill_value=0).rename(columns=FEDtoReadOut())
     return table
 
 
 def process_file(file, fill, interval):
     table = get_agg_table(file, interval)
+    table.to_csv(join(OUT_FILE_PATH, f"{fill}_track_{interval}.csv"))
     make_plot(table, fill, interval)
 
 
