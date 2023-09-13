@@ -1,5 +1,5 @@
-from utilities import FEDtoReadOut
-from plotting import plot_table, plot_box
+from scripts.utilities import FEDtoReadOut
+from scripts.plotting import plot_table, plot_box
 from ROOT import RooFit, RooArgSet, RooArgList, RooGaussian, RooRealVar, RooAddPdf, TCanvas
 from tqdm import tqdm
 import ROOT
@@ -171,8 +171,10 @@ def get_bckg_frac(Fill, startTime, endTime, step):
         log_df.loc[h, 'bkg_s0_e'] = bkg_s0.getError()
         log_df.loc[h, 'BSZ_x'] = table.BeamSpotZ_x.mean()
         log_df.loc[h, 'BSZ_x_std'] = table.BeamSpotZ_x.std()
+        # log_df.loc[h, 'BSZ_x'], log_df.loc[h, 'BSZ_x_std'] = getFittedValues(table.BeamSpotZ_x.to_numpy())
         log_df.loc[h, 'BSZ_y'] = table.BeamSpotZ_y.mean()
         log_df.loc[h, 'BSZ_y_std'] = table.BeamSpotZ_y.std()
+        # log_df.loc[h, 'BSZ_y'], log_df.loc[h, 'BSZ_y_std'] = getFittedValues(table.BeamSpotZ_y.to_numpy())
         log_df.loc[h, 'chi2'] = chi2
 
         log_dfs.append(log_df)

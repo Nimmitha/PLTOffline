@@ -200,7 +200,7 @@ def generate_missing_fills(pltTS):
     # print(decoded_files)
 
     # Excluded fills
-    excluded = [8178, 8225, 8381, 8385]
+    excluded = [8178, 8225, 8381, 8385, 8999, 8957]
     missing_results = [fill for fill in decoded_files if fill not in result_files and fill not in excluded]
 
     return missing_results
@@ -255,3 +255,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args)
+    

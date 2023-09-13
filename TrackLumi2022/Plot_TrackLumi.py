@@ -64,7 +64,8 @@ def get_agg_table(file, interval):
     df = tree.arrays(['timesec', 'timemsec', 'Channel'], library='pd')
     df = convert_to_timestamp(df)
 
-    if not int(interval) == 0:
+    int_value = interval.replace('min', '')
+    if not int(int_value) == 0:
         df['timestamp'] = df['timestamp'].dt.round(interval)
 
     table = df.pivot_table(index='timestamp', columns=['Channel'], aggfunc=len, fill_value=0).rename(columns=FEDtoReadOut())
