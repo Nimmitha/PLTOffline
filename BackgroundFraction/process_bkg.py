@@ -1,5 +1,5 @@
-from utilities import pltTimestamps, FEDtoReadOut
-from plotting import plot_table, plot_box
+from scripts.utilities import pltTimestamps, FEDtoReadOut
+from scripts.plotting import plot_table, plot_box
 from ROOT import RooFit, RooArgSet, RooArgList, RooGaussian, RooRealVar, RooAddPdf, TCanvas
 import ROOT
 import math
@@ -10,10 +10,11 @@ import argparse
 import subprocess
 from glob import glob
 import pandas as pd
-from calcF_timeBased import get_bckg_frac
+from scripts.calcF_timeBased import get_bckg_frac
 # import mplhep as hep
 # hep.style.use("CMS")
 
+channels = [0, 1, 2, 3, 4]
 
 ROOT.gErrorIgnoreLevel = ROOT.kWarning
 RooMsgService = ROOT.RooMsgService.instance()
@@ -75,7 +76,7 @@ def run_fit_scripts(df_row):
     EndTime = (int(df_row['end'].strftime("%s")) + 0 * 3600)
     step = (df_row['duration'])
 
-    get_bckg_frac(fill, StartTime, EndTime, step)
+    get_bckg_frac(fill, StartTime, EndTime, step, channels)
 
 
 def get_inst_luminosity(df_row):
@@ -148,7 +149,7 @@ def combineLogs(df_row):
     fName = str(fill)
     lumiLogPath = "logs/" + fName + "Lumi.csv"
     fLogPath = "logs/" + fName + "F.csv"
-    resultPath = "results/" + fName + ".csv"
+    resultPath = "output/results/" + fName + ".csv"
     print(f"Combining logs for {fill}")
 
     # Read luminosity and Background Fraction logs
@@ -253,6 +254,6 @@ if __name__ == "__main__":
     # Run on specific fills
     parser.add_argument('--list', nargs='+', type=int, help='List of fills to run on')
     args = parser.parse_args()
-
+    
     main(args)
     

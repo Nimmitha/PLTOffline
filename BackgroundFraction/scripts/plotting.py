@@ -6,7 +6,7 @@ from ROOT import RooFit, TCanvas, gROOT
 # Enable batch mode
 gROOT.SetBatch(True)
 
-IMG_PATH = "plots/"
+IMG_PATH = "output/plots/"
 
 
 def plot_box(model, frame1, chi2, ntracks_time, t1_string, t2_string, h, Fill):

@@ -59,15 +59,15 @@ def calculate_sigma(table):
     return table, ntrack_resi
 
 
-def get_bckg_frac(Fill, startTime, endTime, step):
+def get_bckg_frac(Fill, startTime, endTime, step, channels):
     """Get background fraction for a given fill and time range"""
     print(f"Processing {Fill} from {startTime} to {endTime}")
-    channels = [10, 11, 12, 14, 15]
+    # channels = [10, 11, 12, 14, 15]
     FILE_PATH = "/home/nkarunar/track_root_files/"
     # FILE_PATH = "/mnt/d/Cernbox/data/temp_access/"
     fPath = FILE_PATH + Fill + ".root"
 
-    IMG_PATH = "plots/"
+    IMG_PATH = "output/plots/"
     fLogPath = "logs/" + Fill + "F.csv"
     file = uproot.open(fPath)
     tree = file["T"]
