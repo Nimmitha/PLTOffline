@@ -7,10 +7,9 @@
 __pycache__/
 
 .vscode/
-BackgroundFraction/plots/*
 BackgroundFraction/logs/*
 BackgroundFraction/temp/*
-BackgroundFraction/ReStructured/plots/*
+BackgroundFraction/output/plots/*
 TrackLumi2022/plots/*
 TrackLumi2022/output/*
 BackgroundFraction/ReStructured_channel10_results/plots/*
