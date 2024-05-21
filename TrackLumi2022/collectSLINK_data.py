@@ -93,8 +93,8 @@ def getTracks(pltTS, mode):
             continue
 
         year = slink_files[0][:4]
-        if year not in ['2022', '2023']:
-            print("Only checked for 2022 and 2023. Skipping..")
+        if year not in ['2022', '2023', '2024']:
+            print("Only checked for 2022, 2023 and 2024. Skipping..")
             continue
 
         arg_MakeTrack = ["", gainCal, alignment, str(fill), StartTime, EndTime, ""]

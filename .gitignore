@@ -10,6 +10,12 @@ __pycache__/
 BackgroundFraction/logs/*
 BackgroundFraction/temp/*
 BackgroundFraction/output/plots/*
+BackgroundFraction/output_plusSide/plots
+BeamSpot/output/plots
+
+
+
+
 TrackLumi2022/plots/*
 TrackLumi2022/output/*
 BackgroundFraction/ReStructured_channel10_results/plots/*
