@@ -76,7 +76,7 @@ def gainCal( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     gainCalTS = [ '20150811.120552', '20150923.225334', '20151029.220336', \
                 '20160819.113115', \
                 '20170518.143905', '20170717.224815', '20170731.122306', '20170921.104620', '20171026.164159', \
-                '20180419.131317', '20180430.123258', '20180605.124858', '20180621.160623', '20220803.143004', '20230401.010101']
+                '20180419.131317', '20180430.123258', '20180605.124858', '20180621.160623', '20220803.143004', '20230401.010101', '20240401.010101']
     for ts in sorted( gainCalTS, reverse=True):
         # print(pltTS)
         pltTS.loc[ ( pltTS.start_time.dt.year == int(ts[0:4]) ) & ( pltTS.index >= gainCalNextFill(ts) ), 'gainCal' ] = ts
@@ -92,6 +92,7 @@ def alignment( pltTS:pandas.DataFrame ) -> pandas.DataFrame:
     pltTS.loc[ pltTS.start_time.dt.year == 2017, 'alignment' ] = 'Trans_Alignment_2017MagnetOn_Prelim.dat'
     pltTS.loc[ pltTS.start_time.dt.year == 2022, 'alignment' ] = 'Trans_Alignment_8033.dat'
     pltTS.loc[ pltTS.start_time.dt.year == 2023, 'alignment' ] = 'Trans_Alignment_8033.dat'
+    pltTS.loc[ pltTS.start_time.dt.year == 2024, 'alignment' ] = 'Trans_Alignment_8033.dat'
     # pltTS.loc[ 6570:6579, 'alignment' ] = 'Trans_Alignment_6666.dat' # (example)
     return pltTS
 
@@ -116,7 +117,7 @@ def pltTimestamps( year:int ) -> pandas.DataFrame:
 def main():
     #omsapi = cmsomsAuth()
     pltTS = pandas.DataFrame()
-    for year in 2015, 2016, 2017, 2018, 2022, 2023:
+    for year in 2015, 2016, 2017, 2018, 2022, 2023, 2024:
         yearTS = pltTimestamps( year )
         pltTS = pltTS.append( yearTS )
 
