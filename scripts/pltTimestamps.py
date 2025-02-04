@@ -20,10 +20,10 @@ def fileTimestamps( year:int, fileType:str ) -> pandas.Series:
     # return all file timestamps a pandas series of sorted timestamps, given a year as an argument
     import re, glob
     if fileType == 'wloop':
-        globString = f'/localdata/{year}/WORKLOOP/Data_Scaler*'
+        globString = f'/eos/cms/store/group/briltech/plt/{year}/WORKLOOP/Data_Scaler*'
         sliceFrom = 2
     elif fileType == 'slink':
-        globString = f'/localdata/{year}/SLINK/Slink*'
+        globString = f'/eos/cms/store/group/briltech/plt/{year}/SLINK/Slink*'
         sliceFrom = 1
     tsList = list( set( [ str.join( '.', re.split( '_|\.', filename )[sliceFrom:sliceFrom+2] ) for filename in glob.glob( globString ) ] ) )
         # list(set()) will remove duplicate entries, usually from both .gz and uncompressed versions of files
